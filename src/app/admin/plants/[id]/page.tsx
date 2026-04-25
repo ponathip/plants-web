@@ -416,7 +416,7 @@ export default function PlantDetailPage() {
                 className="w-full h-40 object-cover cursor-pointer hover:opacity-80"
               />
               <div className="p-2 text-xs text-gray-500">
-                { imageLabel[img.image_type] || "image"}
+                {imageLabel[img.image_type ?? ""] || "image"}
               </div>
             </div>
           ))}
