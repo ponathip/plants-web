@@ -35,7 +35,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const res = await api("/auth/me")
         setUser(res)
       } catch (err) {
-        if (err.message === "SESSION_EXPIRED") {
+        const message = err instanceof Error ? err.message : ""
+        if (message === "SESSION_EXPIRED") {
           setUser(null)
           return
         }
