@@ -56,9 +56,9 @@ export default function MembersAdminPage() {
     : Number(gardenId || 0)
 
   const myGardenRole = useMemo(() => {
-    if (!user?.id && !user?.userId) return null
+    const currentUserId = Number((user as any)?.id || user?.userId)
 
-    const currentUserId = Number(user?.id || user?.userId)
+    if (!currentUserId) return null
 
     const mine = members.find(
       (m) =>
