@@ -7,6 +7,7 @@ import { useProtect } from "@/components/Protected";
 import PermissionGate from "@/components/PermissionGate";
 import { useUser } from "@/context/UserContext";
 import { toastError, toastSuccess } from "@/lib/toast";
+import Script from "next/script";
 
 type Plant = {
   id: number;
@@ -52,15 +53,6 @@ type TimelineItem = {
   age_unit?: string;
   image_url?: string;
 };
-
-type PurchaseImage = {
-  id: number
-  purchase_id: number
-  purchase_item_id: number | null
-  image_url: string
-  image_type: "seller_post" | "seller_chat" | "slip" | "received" | "other"
-  note: string | null
-}
 
 type PurchaseItem = {
   id: number;
@@ -115,12 +107,13 @@ export default function PlantDetailPage() {
   const [savingNote, setSavingNote] = useState(false);
 
   const [purchaseItem, setPurchaseItem] = useState<PurchaseItem | null>(null);
-  const [purchaseItemImages, setPurchaseItemImages] = useState<PurchaseItemImage[]>([]);
+  const [purchaseItemImages, setPurchaseItemImages] = useState<
+    PurchaseItemImage[]
+  >([]);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const [openingUpload, setOpeningUpload] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
-  
 
   const loadData = async () => {
     if (!id) return;
@@ -134,11 +127,15 @@ export default function PlantDetailPage() {
         api(`/plant-timelines/${id}/timeline`),
       ]);
 
-      setPlant(plantData.plant  || null);
-      setTimeline(Array.isArray(timelineData) ? timelineData : timelineData.data || []);
+      setPlant(plantData.plant || null);
+      setTimeline(
+        Array.isArray(timelineData) ? timelineData : timelineData.data || [],
+      );
       setPurchaseItem(plantData.purchase_item || null);
       setPurchaseItemImages(
-        Array.isArray(plantData.purchase_item_images) ? plantData.purchase_item_images : []
+        Array.isArray(plantData.purchase_item_images)
+          ? plantData.purchase_item_images
+          : [],
       );
     } catch (err: any) {
       setError(err.message || "โหลดข้อมูลต้นพืชไม่สำเร็จ");
@@ -191,11 +188,18 @@ export default function PlantDetailPage() {
       return;
     }
 
+    const cloudinary = (window as any).cloudinary;
+
+    if (!cloudinary) {
+      alert("Cloudinary ยังโหลดไม่เสร็จ กรุณารอสักครู่แล้วลองใหม่");
+      return;
+    }
+
     setOpeningUpload(true);
 
     const widget = (window as any).cloudinary.createUploadWidget(
       {
-        cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+        cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dk7hhxcwn",
         uploadPreset: "plants_timeline",
         sources: ["local", "camera"],
         multiple: false,
@@ -222,7 +226,7 @@ export default function PlantDetailPage() {
           const publicId = result.info.public_id;
 
           setNoteImage(url);
-          setNoteImagePublicId(publicId)
+          setNoteImagePublicId(publicId);
         }
 
         if (result?.event === "close") {
@@ -234,8 +238,12 @@ export default function PlantDetailPage() {
           setOpeningUpload(false);
           setUploadingImage(false);
         }
-      }
+      },
     );
+    if (!widget) {
+      alert("ไม่สามารถเปิดหน้าต่างอัปโหลดได้");
+      return;
+    }
 
     widget.open();
   };
@@ -252,7 +260,7 @@ export default function PlantDetailPage() {
       sold: "ขายแล้ว",
       dead: "ตาย",
     }),
-    []
+    [],
   );
 
   const sourceLabel: Record<string, string> = useMemo(
@@ -261,7 +269,7 @@ export default function PlantDetailPage() {
       propagation: "ขยายพันธุ์",
       unknown: "ไม่ระบุ",
     }),
-    []
+    [],
   );
 
   const propagationLabel: Record<string, string> = useMemo(
@@ -273,7 +281,7 @@ export default function PlantDetailPage() {
       seed: "เพาะเมล็ด",
       other: "อื่นๆ",
     }),
-    []
+    [],
   );
 
   const imageLabel: Record<string, string> = useMemo(
@@ -284,7 +292,7 @@ export default function PlantDetailPage() {
       received: "ได้รับ",
       other: "อื่นๆ",
     }),
-    []
+    [],
   );
 
   if (loadingUser) {
@@ -305,6 +313,10 @@ export default function PlantDetailPage() {
 
   return (
     <div className="p-6 space-y-6">
+      <Script
+        src="https://upload-widget.cloudinary.com/global/all.js"
+        strategy="afterInteractive"
+      />
       <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5">
         <h1 className="text-2xl font-bold">
           {plant.display_name || plant.name || "-"}
@@ -312,14 +324,14 @@ export default function PlantDetailPage() {
 
         {previewImage && (
           <div
-              className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
-              onClick={() => setPreviewImage(null)}
+            className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
+            onClick={() => setPreviewImage(null)}
           >
-              <img
+            <img
               src={previewImage}
               className="max-w-[90%] max-h-[90%] rounded-lg shadow-lg"
               onClick={(e) => e.stopPropagation()}
-              />
+            />
           </div>
         )}
 
@@ -332,7 +344,9 @@ export default function PlantDetailPage() {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <section className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 space-y-3">
           <h2 className="font-semibold">ข้อมูลหลัก</h2>
-          <div>สถานะ: {statusLabel[plant.status || ""] || plant.status || "-"}</div>
+          <div>
+            สถานะ: {statusLabel[plant.status || ""] || plant.status || "-"}
+          </div>
           <div>วันที่รับเข้า: {formatDateTime(plant.acquired_at)}</div>
           <div>ต้นทุน: {formatNumber(plant.cost_per_unit)} บาท</div>
         </section>
@@ -340,7 +354,8 @@ export default function PlantDetailPage() {
         <section className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 space-y-3">
           <h2 className="font-semibold">ที่มา</h2>
           <div>
-            ที่มา: {sourceLabel[plant.source_type || ""] || plant.source_type || "-"}
+            ที่มา:{" "}
+            {sourceLabel[plant.source_type || ""] || plant.source_type || "-"}
           </div>
           <div>ผู้ขาย: {plant.supplier_name || "-"}</div>
           <div>หมายเหตุ: {plant.source_note || "-"}</div>
@@ -379,50 +394,58 @@ export default function PlantDetailPage() {
       </div>
 
       {purchaseItemImages.length > 0 && (
-      <section className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 space-y-4">
-        <h2 className="font-semibold">รูปจากรายการซื้อ</h2>
+        <section className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 space-y-4">
+          <h2 className="font-semibold">รูปจากรายการซื้อ</h2>
 
-        {purchaseItem && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-            <div>
-              <span className="text-gray-500">ชนิดพืช:</span>{" "}
-              <span className="font-medium">{purchaseItem.species_name || "-"}</span>
-            </div>
-            <div>
-              <span className="text-gray-500">สายพันธุ์:</span>{" "}
-              <span className="font-medium">{purchaseItem.variety_name || "-"}</span>
-            </div>
-            <div>
-              <span className="text-gray-500">ประเภท:</span>{" "}
-              <span className="font-medium">{purchaseItem.item_type || "-"}</span>
-            </div>
-            <div>
-              <span className="text-gray-500">จำนวน:</span>{" "}
-              <span className="font-medium">{purchaseItem.quantity || "-"}</span>
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-          {purchaseItemImages.map((img) => (
-            <div
-              key={img.id}
-              className="border rounded-lg overflow-hidden bg-white dark:bg-gray-800"
-            >
-              <img
-                src={getImageSrc(img.image_url)}
-                onClick={() => setPreviewImage(getImageSrc(img.image_url))}
-                alt={`purchase-item-${img.id}`}
-                className="w-full h-40 object-cover cursor-pointer hover:opacity-80"
-              />
-              <div className="p-2 text-xs text-gray-500">
-                {imageLabel[img.image_type ?? ""] || "image"}
+          {purchaseItem && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+              <div>
+                <span className="text-gray-500">ชนิดพืช:</span>{" "}
+                <span className="font-medium">
+                  {purchaseItem.species_name || "-"}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-500">สายพันธุ์:</span>{" "}
+                <span className="font-medium">
+                  {purchaseItem.variety_name || "-"}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-500">ประเภท:</span>{" "}
+                <span className="font-medium">
+                  {purchaseItem.item_type || "-"}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-500">จำนวน:</span>{" "}
+                <span className="font-medium">
+                  {purchaseItem.quantity || "-"}
+                </span>
               </div>
             </div>
-          ))}
-        </div>
-      </section>
-    )}
+          )}
+
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+            {purchaseItemImages.map((img) => (
+              <div
+                key={img.id}
+                className="border rounded-lg overflow-hidden bg-white dark:bg-gray-800"
+              >
+                <img
+                  src={getImageSrc(img.image_url)}
+                  onClick={() => setPreviewImage(getImageSrc(img.image_url))}
+                  alt={`purchase-item-${img.id}`}
+                  className="w-full h-40 object-cover cursor-pointer hover:opacity-80"
+                />
+                <div className="p-2 text-xs text-gray-500">
+                  {imageLabel[img.image_type ?? ""] || "image"}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <PermissionGate perm="plant.update">
         <section className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5">
@@ -446,27 +469,27 @@ export default function PlantDetailPage() {
             {image_url && (
               <img
                 src={image_url}
-                  alt="preview"
-                  className="rounded-lg border"
+                alt="preview"
+                className="rounded-lg border"
               />
             )}
 
             <button
-                  type="button"
-                  onClick={openUploadWidget}
-                  disabled={openingUpload || uploadingImage}
-                  className="w-full rounded-lg bg-blue-600 px-4 py-3 text-white disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {(openingUpload || uploadingImage) && (
-                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  )}
-                  <span>
-                    {openingUpload
-                      ? "กำลังเปิดหน้าต่างอัปโหลด..."
-                      : uploadingImage
-                      ? "กำลังอัปโหลดรูป..."
-                      : "📷 เลือกรูป / ถ่ายรูป"}
-                  </span>
+              type="button"
+              onClick={openUploadWidget}
+              disabled={openingUpload || uploadingImage}
+              className="w-full rounded-lg bg-blue-600 px-4 py-3 text-white disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {(openingUpload || uploadingImage) && (
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              )}
+              <span>
+                {openingUpload
+                  ? "กำลังเปิดหน้าต่างอัปโหลด..."
+                  : uploadingImage
+                    ? "กำลังอัปโหลดรูป..."
+                    : "📷 เลือกรูป / ถ่ายรูป"}
+              </span>
             </button>
 
             <div className="flex justify-end">
@@ -491,7 +514,10 @@ export default function PlantDetailPage() {
           )}
 
           {timeline.map((item) => (
-            <div key={item.id} className="border-l-4 border-green-600 pl-4 py-1">
+            <div
+              key={item.id}
+              className="border-l-4 border-green-600 pl-4 py-1"
+            >
               <div className="text-xs text-gray-500">
                 {formatDateTime(item.event_date)}
               </div>
@@ -506,7 +532,9 @@ export default function PlantDetailPage() {
 
               {item.event_type === "status_changed" && (
                 <div className="text-sm text-gray-600 mt-1">
-                  จาก {statusLabel[item.old_status || ""] || item.old_status || "-"} →{" "}
+                  จาก{" "}
+                  {statusLabel[item.old_status || ""] || item.old_status || "-"}{" "}
+                  →{" "}
                   {statusLabel[item.new_status || ""] || item.new_status || "-"}
                 </div>
               )}

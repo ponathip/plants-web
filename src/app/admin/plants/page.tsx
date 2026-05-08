@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useUser } from "@/context/UserContext";
 import { useGarden } from "@/context/GardenContext";
 import { toast } from "sonner";
+import Script from "next/script";
 
 type PlantStatus = "alive" | "sold" | "dead";
 type SourceType = "purchase" | "propagation" | "unknown";
@@ -103,15 +104,15 @@ export default function PlantsAdminPage() {
   const { gardenId } = useGarden();
   const isSuper = user?.role === "super";
 
-  const permissions = user?.permissions || []
+  const permissions = user?.permissions || [];
 
-  const today = new Date().toISOString().slice(0, 10)
-  const firstDay = new Date()
-  firstDay.setDate(1)
-  const firstDayText = firstDay.toISOString().slice(0, 10)
+  const today = new Date().toISOString().slice(0, 10);
+  const firstDay = new Date();
+  firstDay.setDate(1);
+  const firstDayText = firstDay.toISOString().slice(0, 10);
 
-  const [from, setFrom] = useState(firstDayText)
-  const [to, setTo] = useState(today)
+  const [from, setFrom] = useState(firstDayText);
+  const [to, setTo] = useState(today);
 
   const [plants, setPlants] = useState<Plant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -174,8 +175,8 @@ export default function PlantsAdminPage() {
         limit: limit.toString(),
       });
 
-      if (from) params.set("from", from)
-      if (to) params.set("to", to)
+      if (from) params.set("from", from);
+      if (to) params.set("to", to);
 
       if (isSuper && gardenFilter) {
         params.set("garden_id", gardenFilter);
@@ -284,11 +285,18 @@ export default function PlantsAdminPage() {
       return;
     }
 
+    const cloudinary = (window as any).cloudinary;
+
+    if (!cloudinary) {
+      alert("Cloudinary ยังโหลดไม่เสร็จ กรุณารอสักครู่แล้วลองใหม่");
+      return;
+    }
+
     setOpeningUpload(true);
 
     const widget = (window as any).cloudinary.createUploadWidget(
       {
-        cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+        cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dk7hhxcwn",
         uploadPreset: "plants_timeline",
         sources: ["local", "camera"],
         multiple: false,
@@ -335,6 +343,11 @@ export default function PlantsAdminPage() {
       },
     );
 
+    if (!widget) {
+      alert("ไม่สามารถเปิดหน้าต่างอัปโหลดได้");
+      return;
+    }
+
     widget.open();
   };
 
@@ -342,17 +355,17 @@ export default function PlantsAdminPage() {
     const params = new URLSearchParams({
       search,
       status: filter,
-    })
+    });
 
-    if (from) params.set("from", from)
-    if (to) params.set("to", to)
+    if (from) params.set("from", from);
+    if (to) params.set("to", to);
 
     if (isSuper && gardenFilter) {
-      params.set("garden_id", gardenFilter)
+      params.set("garden_id", gardenFilter);
     }
 
-    window.open(`${API_URL}/plants/export?${params.toString()}`, "_blank")
-  }
+    window.open(`${API_URL}/plants/export?${params.toString()}`, "_blank");
+  };
 
   const openCreate = async () => {
     setEditing(null);
@@ -508,16 +521,22 @@ export default function PlantsAdminPage() {
 
   return (
     <div className="space-y-6 bg-white dark:bg-gray-900 p-6 rounded-xl shadow">
+      <Script
+        src="https://upload-widget.cloudinary.com/global/all.js"
+        strategy="afterInteractive"
+      />
       <div className="flex flex-wrap gap-4 justify-between items-center">
         <h1 className="text-2xl font-bold">🌱 ต้นไม้</h1>
         <div className="flex items-center gap-3 flex-wrap">
           <button
-              onClick={handleExport}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-            >
-              Export CSV
+            onClick={handleExport}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+          >
+            Export CSV
           </button>
-          {(isSuper || permissions.includes("plant.create") || permissions.includes("plant.manage")) && (
+          {(isSuper ||
+            permissions.includes("plant.create") ||
+            permissions.includes("plant.manage")) && (
             <button
               onClick={openCreate}
               className="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded"
@@ -557,8 +576,8 @@ export default function PlantsAdminPage() {
           type="date"
           value={from}
           onChange={(e) => {
-            setPage(1)
-            setFrom(e.target.value)
+            setPage(1);
+            setFrom(e.target.value);
           }}
           className="border px-3 py-2 rounded bg-white dark:bg-gray-800"
         />
@@ -567,8 +586,8 @@ export default function PlantsAdminPage() {
           type="date"
           value={to}
           onChange={(e) => {
-            setPage(1)
-            setTo(e.target.value)
+            setPage(1);
+            setTo(e.target.value);
           }}
           className="border px-3 py-2 rounded bg-white dark:bg-gray-800"
         />
@@ -634,7 +653,9 @@ export default function PlantsAdminPage() {
                     >
                       อัพเดท
                     </button>
-                    {(isSuper || permissions.includes("plant.delete") || permissions.includes("plant.manage")) && (
+                    {(isSuper ||
+                      permissions.includes("plant.delete") ||
+                      permissions.includes("plant.manage")) && (
                       <button
                         key={p.id}
                         onClick={(e) => {
@@ -733,7 +754,9 @@ export default function PlantsAdminPage() {
                     )}
 
                     <div className="space-y-1">
-                      <label className="text-sm font-medium">ชนิดสายพันธุ์</label>
+                      <label className="text-sm font-medium">
+                        ชนิดสายพันธุ์
+                      </label>
                       <select
                         className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800"
                         value={form.species_id}
@@ -1159,9 +1182,7 @@ export default function PlantsAdminPage() {
                     {form.image_url && (
                       <img
                         src={form.image_url}
-                        onClick={() =>
-                          setPreviewImage(`${form.image_url}`)
-                        }
+                        onClick={() => setPreviewImage(`${form.image_url}`)}
                         alt="preview"
                         className="rounded-lg border"
                       />
@@ -1211,7 +1232,9 @@ export default function PlantsAdminPage() {
                 >
                   ยกเลิก
                 </button>
-                {(isSuper || permissions.includes("plant.create") || permissions.includes("plant.update")) && (
+                {(isSuper ||
+                  permissions.includes("plant.create") ||
+                  permissions.includes("plant.update")) && (
                   <button
                     onClick={savePlant}
                     className="px-4 py-2 bg-green-700 hover:bg-green-800 text-white rounded"

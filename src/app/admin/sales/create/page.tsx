@@ -1,79 +1,80 @@
-"use client"
+"use client";
 
-import { useEffect, useMemo, useState } from "react"
-import { useRouter } from "next/navigation"
-import { api } from "@/lib/api"
-import { useGarden } from "@/context/GardenContext"
-import { toastError, toastSuccess } from "@/lib/toast"
-import { useUser } from "@/context/UserContext"
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { api } from "@/lib/api";
+import { useGarden } from "@/context/GardenContext";
+import { toastError, toastSuccess } from "@/lib/toast";
+import { useUser } from "@/context/UserContext";
+import Script from "next/script";
 
 type PlantOption = {
-  id: number
-  name: string | null
-  status: string
-  cost_per_unit: number
-  species_name: string | null
-  variety_name: string | null
-}
+  id: number;
+  name: string | null;
+  status: string;
+  cost_per_unit: number;
+  species_name: string | null;
+  variety_name: string | null;
+};
 
 type SaleItem = {
-  plant_id: string
-  quantity: number
-  unit_price: number
-  note: string
-}
+  plant_id: string;
+  quantity: number;
+  unit_price: number;
+  note: string;
+};
 
 type SaleForm = {
-  buyer_name: string
-  sale_link: string
-  channel: string
-  payment_method: string
-  payment_detail: string
-  shipping_fee: number
-  sold_at: string
-  note: string
-  items: SaleItem[]
-}
+  buyer_name: string;
+  sale_link: string;
+  channel: string;
+  payment_method: string;
+  payment_detail: string;
+  shipping_fee: number;
+  sold_at: string;
+  note: string;
+  items: SaleItem[];
+};
 
 const emptyItem = (): SaleItem => ({
   plant_id: "",
   quantity: 1,
   unit_price: 0,
   note: "",
-})
+});
 
 type UploadedImage = {
-  url: string
-  public_id: string
-}
+  url: string;
+  public_id: string;
+};
 
 type Garden = {
-  id: number
-  name: string
-}
+  id: number;
+  name: string;
+};
 
 export default function SaleCreatePage() {
-  const { gardenId } = useGarden()
-  const { user, loadingUser } = useUser()
-  const permissions = user?.permissions || []
-  const isSuper = user?.role === "super"
+  const { gardenId } = useGarden();
+  const { user, loadingUser } = useUser();
+  const permissions = user?.permissions || [];
+  const isSuper = user?.role === "super";
 
   const canCreateSale =
-  isSuper ||
-  permissions.includes("sale.create") ||
-  permissions.includes("sale.manage")
+    isSuper ||
+    permissions.includes("sale.create") ||
+    permissions.includes("sale.manage");
 
-  const [loading, setLoading] = useState(false)
-  const [plants, setPlants] = useState<PlantOption[]>([])
+  const [loading, setLoading] = useState(false);
+  const [plants, setPlants] = useState<PlantOption[]>([]);
 
-  const [slipImage, setSlipImage] = useState<UploadedImage | null>(null)
-  const [saleImages, setSaleImages] = useState<UploadedImage[]>([])
+  const [slipImage, setSlipImage] = useState<UploadedImage | null>(null);
+  const [saleImages, setSaleImages] = useState<UploadedImage[]>([]);
   // const [saleImages, setSaleImages] = useState<File[]>([])
-  const router = useRouter()
-  const [gardens, setGardens] = useState<Garden[]>([])
-  const [selectedGardenId, setSelectedGardenId] = useState("")
+  const router = useRouter();
+  const [gardens, setGardens] = useState<Garden[]>([]);
+  const [selectedGardenId, setSelectedGardenId] = useState("");
 
-  const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const [form, setForm] = useState<SaleForm>({
     buyer_name: "",
@@ -85,58 +86,69 @@ export default function SaleCreatePage() {
     sold_at: new Date().toISOString().slice(0, 16),
     note: "",
     items: [emptyItem()],
-  })
+  });
 
   useEffect(() => {
     const loadPlants = async () => {
-      const targetGardenId = isSuper ? selectedGardenId : String(gardenId || "")
-      if (!targetGardenId) return
+      const targetGardenId = isSuper
+        ? selectedGardenId
+        : String(gardenId || "");
+      if (!targetGardenId) return;
 
       try {
         const params = new URLSearchParams({
           garden_id: targetGardenId,
-        })
+        });
 
-        const res = await api(`/sale/plants/available-for-sale?${params.toString()}`)
-        setPlants(Array.isArray(res) ? res : res.data || [])
+        const res = await api(
+          `/sale/plants/available-for-sale?${params.toString()}`,
+        );
+        setPlants(Array.isArray(res) ? res : res.data || []);
       } catch (err) {
-        console.error(err)
+        console.error(err);
       }
-    }
+    };
 
-    if (loadingUser) return
-    loadPlants()
-  }, [loadingUser, isSuper, gardenId, selectedGardenId])
+    if (loadingUser) return;
+    loadPlants();
+  }, [loadingUser, isSuper, gardenId, selectedGardenId]);
 
   useEffect(() => {
-    if (loadingUser) return
+    if (loadingUser) return;
 
     if (isSuper) {
-      loadGardens()
+      loadGardens();
     } else {
-      setGardens([])
-      setSelectedGardenId(String(gardenId || ""))
+      setGardens([]);
+      setSelectedGardenId(String(gardenId || ""));
     }
-  }, [loadingUser, isSuper, gardenId])
+  }, [loadingUser, isSuper, gardenId]);
 
   const loadGardens = async () => {
     try {
-      const res = await api("/gardens")
-      setGardens(Array.isArray(res) ? res : res.data || [])
+      const res = await api("/gardens");
+      setGardens(Array.isArray(res) ? res : res.data || []);
     } catch (err) {
-      console.error("loadGardens error:", err)
+      console.error("loadGardens error:", err);
     }
-  }
+  };
 
   const openUploadWidget = (onSuccess: (img: UploadedImage) => void) => {
     if (!(window as any).cloudinary) {
-      alert("Cloudinary not loaded")
-      return
+      alert("Cloudinary not loaded");
+      return;
+    }
+
+    const cloudinary = (window as any).cloudinary;
+
+    if (!cloudinary) {
+      alert("Cloudinary ยังโหลดไม่เสร็จ กรุณารอสักครู่แล้วลองใหม่");
+      return;
     }
 
     const widget = (window as any).cloudinary.createUploadWidget(
       {
-        cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+        cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dk7hhxcwn",
         uploadPreset: "plants_sale",
         sources: ["local", "camera"],
         multiple: false,
@@ -147,113 +159,128 @@ export default function SaleCreatePage() {
         folder: "plant/sale",
       },
       (error: any, result: any) => {
+        if (error) {
+          console.error("Cloudinary upload error:", error);
+          alert("อัปโหลดรูปไม่สำเร็จ");
+          return;
+        }
+
         if (!error && result?.event === "success") {
           onSuccess({
             url: result.info.secure_url,
             public_id: result.info.public_id,
-          })
+          });
         }
-      }
-    )
+      },
+    );
 
-    widget.open()
-  }
+    if (!widget) {
+      alert("ไม่สามารถเปิดหน้าต่างอัปโหลดได้");
+      return;
+    }
 
-  const updateField = <K extends keyof SaleForm>(key: K, value: SaleForm[K]) => {
-    setForm((prev) => ({ ...prev, [key]: value }))
-  }
+    widget.open();
+  };
+
+  const updateField = <K extends keyof SaleForm>(
+    key: K,
+    value: SaleForm[K],
+  ) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
 
   const updateItem = <K extends keyof SaleItem>(
     index: number,
     key: K,
-    value: SaleItem[K]
+    value: SaleItem[K],
   ) => {
     setForm((prev) => {
-      const next = [...prev.items]
+      const next = [...prev.items];
       next[index] = {
         ...next[index],
         [key]: value,
-      }
-      return { ...prev, items: next }
-    })
-  }
+      };
+      return { ...prev, items: next };
+    });
+  };
 
   const addItem = () => {
     setForm((prev) => ({
       ...prev,
       items: [...prev.items, emptyItem()],
-    }))
-  }
+    }));
+  };
 
   const removeItem = (index: number) => {
     setForm((prev) => {
-      if (prev.items.length === 1) return prev
+      if (prev.items.length === 1) return prev;
       return {
         ...prev,
         items: prev.items.filter((_, i) => i !== index),
-      }
-    })
-  }
+      };
+    });
+  };
 
   const itemsTotal = useMemo(() => {
     return form.items.reduce((sum, item) => {
-      return sum + Number(item.quantity || 0) * Number(item.unit_price || 0)
-    }, 0)
-  }, [form.items])
+      return sum + Number(item.quantity || 0) * Number(item.unit_price || 0);
+    }, 0);
+  }, [form.items]);
 
   const grandTotal = useMemo(() => {
-    return itemsTotal + Number(form.shipping_fee || 0)
-  }, [itemsTotal, form.shipping_fee])
+    return itemsTotal + Number(form.shipping_fee || 0);
+  }, [itemsTotal, form.shipping_fee]);
 
   const estimatedProfit = useMemo(() => {
     return form.items.reduce((sum, item) => {
-      const plant = plants.find((p) => p.id === Number(item.plant_id))
-      const cost = Number(plant?.cost_per_unit || 0) * Number(item.quantity || 0)
-      const sale = Number(item.unit_price || 0) * Number(item.quantity || 0)
-      return sum + (sale - cost)
-    }, 0)
-  }, [form.items, plants])
+      const plant = plants.find((p) => p.id === Number(item.plant_id));
+      const cost =
+        Number(plant?.cost_per_unit || 0) * Number(item.quantity || 0);
+      const sale = Number(item.unit_price || 0) * Number(item.quantity || 0);
+      return sum + (sale - cost);
+    }, 0);
+  }, [form.items, plants]);
 
   const validateForm = () => {
-    const targetGardenId = isSuper ? selectedGardenId : String(gardenId || "")
+    const targetGardenId = isSuper ? selectedGardenId : String(gardenId || "");
 
     if (!targetGardenId) {
-      toastError("ยังไม่ได้เลือกสวน")
-      return false
+      toastError("ยังไม่ได้เลือกสวน");
+      return false;
     }
 
     if (!form.items.length) {
-      toastError("ต้องมีรายการขายอย่างน้อย 1 รายการ")
-      return false
+      toastError("ต้องมีรายการขายอย่างน้อย 1 รายการ");
+      return false;
     }
 
-    const chosen = new Set<string>()
+    const chosen = new Set<string>();
 
     for (const item of form.items) {
       if (!item.plant_id) {
-        toastError("กรุณาเลือกต้นพืชให้ครบทุกรายการ")
-        return false
+        toastError("กรุณาเลือกต้นพืชให้ครบทุกรายการ");
+        return false;
       }
 
       if (chosen.has(item.plant_id)) {
-        toastError("มีต้นพืชซ้ำในรายการขาย")
-        return false
+        toastError("มีต้นพืชซ้ำในรายการขาย");
+        return false;
       }
-      chosen.add(item.plant_id)
+      chosen.add(item.plant_id);
 
       if (Number(item.quantity) <= 0) {
-        toastError("จำนวนต้องมากกว่า 0")
-        return false
+        toastError("จำนวนต้องมากกว่า 0");
+        return false;
       }
 
       if (Number(item.unit_price) < 0) {
-        toastError("ราคาขายต้องไม่ติดลบ")
-        return false
+        toastError("ราคาขายต้องไม่ติดลบ");
+        return false;
       }
     }
 
-    return true
-  }
+    return true;
+  };
 
   // const saveSale = async () => {
   //   if (!validateForm()) return
@@ -314,15 +341,17 @@ export default function SaleCreatePage() {
   // }
   const saveSale = async () => {
     if (!canCreateSale) {
-      toastError("คุณไม่มีสิทธิ์สร้างรายการขาย")
-      return
+      toastError("คุณไม่มีสิทธิ์สร้างรายการขาย");
+      return;
     }
 
-    if (!validateForm()) return
+    if (!validateForm()) return;
 
-    setLoading(true)
+    setLoading(true);
     try {
-      const targetGardenId = isSuper ? selectedGardenId : String(gardenId || "")
+      const targetGardenId = isSuper
+        ? selectedGardenId
+        : String(gardenId || "");
 
       const payload = {
         garden_id: Number(targetGardenId),
@@ -343,24 +372,28 @@ export default function SaleCreatePage() {
           unit_price: Number(item.unit_price || 0),
           note: item.note || "",
         })),
-      }
+      };
 
       const result = await api(`/sale/sales`, {
         method: "POST",
         body: JSON.stringify(payload),
-      })
+      });
 
-      toastSuccess("บันทึกการขายสำเร็จ")
-      router.replace(`/admin/sales/${result.saleId}`)
+      toastSuccess("บันทึกการขายสำเร็จ");
+      router.replace(`/admin/sales/${result.saleId}`);
     } catch (err: any) {
-      toastError(err.message || "บันทึกการขายไม่สำเร็จ")
+      toastError(err.message || "บันทึกการขายไม่สำเร็จ");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="space-y-6 bg-white dark:bg-gray-900 p-6 rounded-xl shadow">
+      <Script
+        src="https://upload-widget.cloudinary.com/global/all.js"
+        strategy="afterInteractive"
+      />
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">💰 เพิ่มรายการขาย</h1>
       </div>
@@ -378,12 +411,12 @@ export default function SaleCreatePage() {
                     className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-900"
                     value={selectedGardenId}
                     onChange={(e) => {
-                      setSelectedGardenId(e.target.value)
-                      setPlants([])
+                      setSelectedGardenId(e.target.value);
+                      setPlants([]);
                       setForm((prev) => ({
                         ...prev,
                         items: [emptyItem()],
-                      }))
+                      }));
                     }}
                   >
                     <option value="">เลือกสวน</option>
@@ -436,7 +469,9 @@ export default function SaleCreatePage() {
                 <select
                   className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-900"
                   value={form.payment_method}
-                  onChange={(e) => updateField("payment_method", e.target.value)}
+                  onChange={(e) =>
+                    updateField("payment_method", e.target.value)
+                  }
                 >
                   <option value="">เลือกการชำระเงิน</option>
                   <option value="bank">ธนาคาร</option>
@@ -447,11 +482,15 @@ export default function SaleCreatePage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-sm font-medium">รายละเอียดการชำระเงิน</label>
+                <label className="text-sm font-medium">
+                  รายละเอียดการชำระเงิน
+                </label>
                 <input
                   className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-900"
                   value={form.payment_detail}
-                  onChange={(e) => updateField("payment_detail", e.target.value)}
+                  onChange={(e) =>
+                    updateField("payment_detail", e.target.value)
+                  }
                   placeholder="เลขบัญชี / พร้อมเพย์ / หมายเหตุ"
                 />
               </div>
@@ -473,7 +512,9 @@ export default function SaleCreatePage() {
                   min="0"
                   className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-900"
                   value={form.shipping_fee}
-                  onChange={(e) => updateField("shipping_fee", Number(e.target.value))}
+                  onChange={(e) =>
+                    updateField("shipping_fee", Number(e.target.value))
+                  }
                 />
               </div>
             </div>
@@ -497,9 +538,14 @@ export default function SaleCreatePage() {
                 อัปโหลดสลิป
               </button>
 
-              {slipImage && <img src={slipImage.url} alt="slip" onClick={() =>
-                setPreviewImage(`${slipImage.url}`)
-              } className="w-full rounded-lg border" />}
+              {slipImage && (
+                <img
+                  src={slipImage.url}
+                  alt="slip"
+                  onClick={() => setPreviewImage(`${slipImage.url}`)}
+                  className="w-full rounded-lg border"
+                />
+              )}
             </div>
 
             <div className="space-y-1">
@@ -518,7 +564,11 @@ export default function SaleCreatePage() {
               )} */}
               <button
                 type="button"
-                onClick={() => openUploadWidget((img) => setSaleImages((prev) => [...prev, img]))}
+                onClick={() =>
+                  openUploadWidget((img) =>
+                    setSaleImages((prev) => [...prev, img]),
+                  )
+                }
                 className="px-3 py-2 rounded bg-blue-600 text-white"
               >
                 เพิ่มรูปหลักฐานการขาย
@@ -553,13 +603,14 @@ export default function SaleCreatePage() {
             <div className="space-y-4">
               {form.items.map((item, index) => {
                 const selectedPlant = plants.find(
-                  (p) => p.id === Number(item.plant_id)
-                )
+                  (p) => p.id === Number(item.plant_id),
+                );
                 const estimatedCost =
-                  Number(selectedPlant?.cost_per_unit || 0) * Number(item.quantity || 0)
+                  Number(selectedPlant?.cost_per_unit || 0) *
+                  Number(item.quantity || 0);
                 const saleLine =
-                  Number(item.unit_price || 0) * Number(item.quantity || 0)
-                const profit = saleLine - estimatedCost
+                  Number(item.unit_price || 0) * Number(item.quantity || 0);
+                const profit = saleLine - estimatedCost;
 
                 return (
                   <div
@@ -582,7 +633,9 @@ export default function SaleCreatePage() {
                       <select
                         className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800"
                         value={item.plant_id}
-                        onChange={(e) => updateItem(index, "plant_id", e.target.value)}
+                        onChange={(e) =>
+                          updateItem(index, "plant_id", e.target.value)
+                        }
                       >
                         <option value="">เลือกต้นพืช</option>
                         {plants.map((plant) => (
@@ -593,7 +646,11 @@ export default function SaleCreatePage() {
                               plant.species_name ||
                               "ไม่ระบุ"}
                             {" - "}
-                            ต้นทุน {Number(plant.cost_per_unit || 0).toLocaleString()} บาท
+                            ต้นทุน{" "}
+                            {Number(
+                              plant.cost_per_unit || 0,
+                            ).toLocaleString()}{" "}
+                            บาท
                           </option>
                         ))}
                       </select>
@@ -615,26 +672,38 @@ export default function SaleCreatePage() {
                           className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800"
                           value={item.quantity}
                           onChange={(e) =>
-                            updateItem(index, "quantity", Number(e.target.value))
+                            updateItem(
+                              index,
+                              "quantity",
+                              Number(e.target.value),
+                            )
                           }
                         />
                       </div>
 
                       <div className="space-y-1">
-                        <label className="text-sm font-medium">ราคาขายต่อหน่วย</label>
+                        <label className="text-sm font-medium">
+                          ราคาขายต่อหน่วย
+                        </label>
                         <input
                           type="number"
                           min="0"
                           className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800"
                           value={item.unit_price}
                           onChange={(e) =>
-                            updateItem(index, "unit_price", Number(e.target.value))
+                            updateItem(
+                              index,
+                              "unit_price",
+                              Number(e.target.value),
+                            )
                           }
                         />
                       </div>
 
                       <div className="space-y-1">
-                        <label className="text-sm font-medium">กำไรโดยประมาณ</label>
+                        <label className="text-sm font-medium">
+                          กำไรโดยประมาณ
+                        </label>
                         <div className="w-full border px-3 py-2 rounded bg-gray-50 dark:bg-gray-800">
                           {profit.toLocaleString()} บาท
                         </div>
@@ -642,16 +711,20 @@ export default function SaleCreatePage() {
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-sm font-medium">หมายเหตุรายการ</label>
+                      <label className="text-sm font-medium">
+                        หมายเหตุรายการ
+                      </label>
                       <input
                         className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800"
                         value={item.note}
-                        onChange={(e) => updateItem(index, "note", e.target.value)}
+                        onChange={(e) =>
+                          updateItem(index, "note", e.target.value)
+                        }
                         placeholder="เช่น ลูกค้าโอนแล้ว / นัดรับเอง"
                       />
                     </div>
                   </div>
-                )
+                );
               })}
             </div>
           </div>
@@ -669,7 +742,9 @@ export default function SaleCreatePage() {
 
               <div className="flex justify-between">
                 <span className="text-gray-500">ค่าส่ง</span>
-                <span>{Number(form.shipping_fee || 0).toLocaleString()} บาท</span>
+                <span>
+                  {Number(form.shipping_fee || 0).toLocaleString()} บาท
+                </span>
               </div>
 
               <div className="border-t pt-3 flex justify-between font-semibold text-green-600">
@@ -706,16 +781,16 @@ export default function SaleCreatePage() {
       </div>
       {previewImage && (
         <div
-            className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
-            onClick={() => setPreviewImage(null)}
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
+          onClick={() => setPreviewImage(null)}
         >
-            <img
+          <img
             src={previewImage}
             className="max-w-[90%] max-h-[90%] rounded-lg shadow-lg"
             onClick={(e) => e.stopPropagation()}
-            />
+          />
         </div>
       )}
     </div>
-  )
+  );
 }

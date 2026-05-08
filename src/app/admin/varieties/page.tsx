@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Script from "next/script";
-import CkEditorField from "@/components/CkEditorField"
+import CkEditorField from "@/components/CkEditorField";
 
 interface PlantSpecies {
   id: number;
@@ -49,10 +49,10 @@ export default function PlantVarietiesPage() {
   const [page, setPage] = useState(1);
   const pageSize = 10;
   const [loading, setLoading] = useState(true);
-  const [openingUpload, setOpeningUpload] = useState(false)
-  const [uploadingImage, setUploadingImage] = useState(false)
+  const [openingUpload, setOpeningUpload] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
-  const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<PlantVariety | null>(null);
@@ -117,90 +117,87 @@ export default function PlantVarietiesPage() {
   };
 
   const optimizeCloudinaryUrl = (url: string, width = 900) => {
-    if (!url.includes("/upload/")) return url
-    return url.replace(
-      "/upload/",
-      `/upload/f_auto,q_auto,w_${width},c_limit/`
-    )
-  }
+    if (!url.includes("/upload/")) return url;
+    return url.replace("/upload/", `/upload/f_auto,q_auto,w_${width},c_limit/`);
+  };
 
   const openUploadWidget = () => {
-  if (typeof window === "undefined") return;
+    if (typeof window === "undefined") return;
 
-  const cloudinary = (window as any).cloudinary;
+    const cloudinary = (window as any).cloudinary;
 
-  if (!cloudinary) {
-    alert("Cloudinary ยังโหลดไม่เสร็จ กรุณารอสักครู่แล้วลองใหม่");
-    return;
-  }
-
-  if (openingUpload || uploadingImage) return;
-
-  setOpeningUpload(true);
-
-  const widget = cloudinary.createUploadWidget(
-    {
-      cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dk7hhxcwn",
-      uploadPreset: "plants_varieties",
-      sources: ["local", "camera"],
-      multiple: false,
-      maxFiles: 1,
-      cropping: false,
-      showAdvancedOptions: false,
-      maxFileSize: 2000000,
-      clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
-      resourceType: "image",
-      folder: "plants/varieties",
-    },
-    (error: any, result: any) => {
-      if (error) {
-        console.error("Cloudinary upload error:", error);
-        setOpeningUpload(false);
-        setUploadingImage(false);
-        alert("อัปโหลดรูปไม่สำเร็จ");
-        return;
-      }
-
-      if (result?.event === "display-changed") {
-        setOpeningUpload(false);
-      }
-
-      if (result?.event === "upload-added") {
-        setOpeningUpload(false);
-        setUploadingImage(true);
-      }
-
-      if (result?.event === "success") {
-        const url = result.info.secure_url;
-        const publicId = result.info.public_id;
-
-        setForm((prev) => ({
-          ...prev,
-          image_url: url,
-          image_public_id: publicId,
-          cover_image_url: prev.cover_image_url || url,
-        }));
-
-        setPreview(url);
-        setOpeningUpload(false);
-        setUploadingImage(false);
-      }
-
-      if (result?.event === "close") {
-        setOpeningUpload(false);
-        setUploadingImage(false);
-      }
+    if (!cloudinary) {
+      alert("Cloudinary ยังโหลดไม่เสร็จ กรุณารอสักครู่แล้วลองใหม่");
+      return;
     }
-  );
 
-  if (!widget) {
-    setOpeningUpload(false);
-    alert("ไม่สามารถเปิด Cloudinary Widget ได้");
-    return;
-  }
+    if (openingUpload || uploadingImage) return;
 
-  widget.open();
-};
+    setOpeningUpload(true);
+
+    const widget = cloudinary.createUploadWidget(
+      {
+        cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dk7hhxcwn",
+        uploadPreset: "plants_varieties",
+        sources: ["local", "camera"],
+        multiple: false,
+        maxFiles: 1,
+        cropping: false,
+        showAdvancedOptions: false,
+        maxFileSize: 2000000,
+        clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
+        resourceType: "image",
+        folder: "plants/varieties",
+      },
+      (error: any, result: any) => {
+        if (error) {
+          console.error("Cloudinary upload error:", error);
+          setOpeningUpload(false);
+          setUploadingImage(false);
+          alert("อัปโหลดรูปไม่สำเร็จ");
+          return;
+        }
+
+        if (result?.event === "display-changed") {
+          setOpeningUpload(false);
+        }
+
+        if (result?.event === "upload-added") {
+          setOpeningUpload(false);
+          setUploadingImage(true);
+        }
+
+        if (result?.event === "success") {
+          const url = result.info.secure_url;
+          const publicId = result.info.public_id;
+
+          setForm((prev) => ({
+            ...prev,
+            image_url: url,
+            image_public_id: publicId,
+            cover_image_url: prev.cover_image_url || url,
+          }));
+
+          setPreview(url);
+          setOpeningUpload(false);
+          setUploadingImage(false);
+        }
+
+        if (result?.event === "close") {
+          setOpeningUpload(false);
+          setUploadingImage(false);
+        }
+      },
+    );
+
+    if (!widget) {
+      setOpeningUpload(false);
+      alert("ไม่สามารถเปิด Cloudinary Widget ได้");
+      return;
+    }
+
+    widget.open();
+  };
 
   useEffect(() => {
     fetchPlantVarieties();
@@ -290,8 +287,8 @@ export default function PlantVarietiesPage() {
       image_public_id: v.image_public_id || "",
     });
 
-      setPreview(v.image_url || null);
-      setOpen(true);
+    setPreview(v.image_url || null);
+    setOpen(true);
   };
 
   const savePlantVariety = async () => {
@@ -467,7 +464,9 @@ export default function PlantVarietiesPage() {
 
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow overflow-x-auto">
         {loading ? (
-          <div className="p-6 text-center text-gray-500">กำลังโหลดข้อมูล...</div>
+          <div className="p-6 text-center text-gray-500">
+            กำลังโหลดข้อมูล...
+          </div>
         ) : (
           <>
             <table className="w-full text-sm">
@@ -492,9 +491,7 @@ export default function PlantVarietiesPage() {
                           src={`${v.image_url}`}
                           className="h-12 w-12 object-cover rounded"
                           alt={v.name}
-                          onClick={() =>
-                            setPreviewImage(`${v.image_url}`)
-                          }
+                          onClick={() => setPreviewImage(`${v.image_url}`)}
                         />
                       ) : (
                         <div className="h-12 w-12 rounded bg-gray-200 dark:bg-gray-700" />
@@ -629,7 +626,9 @@ export default function PlantVarietiesPage() {
                     <input
                       type="checkbox"
                       checked={!!form.is_public}
-                      onChange={(e) => setForm({ ...form, is_public: e.target.checked })}
+                      onChange={(e) =>
+                        setForm({ ...form, is_public: e.target.checked })
+                      }
                     />
                     <span className="text-sm">เปิดหน้า QR</span>
                   </label>
@@ -649,7 +648,9 @@ export default function PlantVarietiesPage() {
                     <input
                       className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800"
                       value={form.public_title}
-                      onChange={(e) => setForm({ ...form, public_title: e.target.value })}
+                      onChange={(e) =>
+                        setForm({ ...form, public_title: e.target.value })
+                      }
                       placeholder="เช่น ชือสายพันธ์ุ"
                     />
                   </div>
@@ -659,7 +660,9 @@ export default function PlantVarietiesPage() {
                     <input
                       className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800"
                       value={form.subtitle}
-                      onChange={(e) => setForm({ ...form, subtitle: e.target.value })}
+                      onChange={(e) =>
+                        setForm({ ...form, subtitle: e.target.value })
+                      }
                       placeholder="เช่น รสหวาน"
                     />
                   </div>
@@ -670,7 +673,9 @@ export default function PlantVarietiesPage() {
                       rows={3}
                       className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800"
                       value={form.highlight_text}
-                      onChange={(e) => setForm({ ...form, highlight_text: e.target.value })}
+                      onChange={(e) =>
+                        setForm({ ...form, highlight_text: e.target.value })
+                      }
                     />
                   </div>
 
@@ -680,7 +685,9 @@ export default function PlantVarietiesPage() {
                       rows={2}
                       className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800"
                       value={form.sunlight}
-                      onChange={(e) => setForm({ ...form, sunlight: e.target.value })}
+                      onChange={(e) =>
+                        setForm({ ...form, sunlight: e.target.value })
+                      }
                     />
                   </div>
 
@@ -690,7 +697,9 @@ export default function PlantVarietiesPage() {
                       rows={2}
                       className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800"
                       value={form.watering}
-                      onChange={(e) => setForm({ ...form, watering: e.target.value })}
+                      onChange={(e) =>
+                        setForm({ ...form, watering: e.target.value })
+                      }
                     />
                   </div>
 
@@ -698,7 +707,9 @@ export default function PlantVarietiesPage() {
                     <label className="text-sm font-medium">วิธีปลูก</label>
                     <CkEditorField
                       value={form.planting_method}
-                      onChange={(value) => setForm({ ...form, planting_method: value })}
+                      onChange={(value) =>
+                        setForm({ ...form, planting_method: value })
+                      }
                     />
                   </div>
 
@@ -706,7 +717,9 @@ export default function PlantVarietiesPage() {
                     <label className="text-sm font-medium">การดูแล</label>
                     <CkEditorField
                       value={form.care_method}
-                      onChange={(value) => setForm({ ...form, care_method: value })}
+                      onChange={(value) =>
+                        setForm({ ...form, care_method: value })
+                      }
                     />
                   </div>
 
@@ -719,10 +732,14 @@ export default function PlantVarietiesPage() {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-sm font-medium">ข้อมูลเพิ่มเติม</label>
+                    <label className="text-sm font-medium">
+                      ข้อมูลเพิ่มเติม
+                    </label>
                     <CkEditorField
                       value={form.public_note}
-                      onChange={(value) => setForm({ ...form, public_note: value })}
+                      onChange={(value) =>
+                        setForm({ ...form, public_note: value })
+                      }
                     />
                   </div>
 
@@ -778,21 +795,25 @@ export default function PlantVarietiesPage() {
                   {openingUpload
                     ? "กำลังเปิดหน้าต่างอัปโหลด..."
                     : uploadingImage
-                    ? "กำลังอัปโหลดรูป..."
-                    : "📷 เลือกรูป / ถ่ายรูป"}
+                      ? "กำลังอัปโหลดรูป..."
+                      : "📷 เลือกรูป / ถ่ายรูป"}
                 </button>
 
                 {openingUpload && (
-                  <div className="text-sm text-blue-600">กำลังเปิด Cloudinary...</div>
+                  <div className="text-sm text-blue-600">
+                    กำลังเปิด Cloudinary...
+                  </div>
                 )}
 
                 {uploadingImage && (
-                  <div className="text-sm text-green-600">กำลังอัปโหลดรูป กรุณารอสักครู่...</div>
+                  <div className="text-sm text-green-600">
+                    กำลังอัปโหลดรูป กรุณารอสักครู่...
+                  </div>
                 )}
 
                 {/* <div className="space-y-1">
                   <label className="text-sm font-medium">รูปภาพ</label> */}
-                  {/* <input
+                {/* <input
                     type="file"
                     accept="image/*"
                     onChange={(e) => {
@@ -810,9 +831,7 @@ export default function PlantVarietiesPage() {
                       src={optimizeCloudinaryUrl(preview || "", 900)}
                       className="h-48 w-full object-cover rounded border"
                       alt="preview"
-                      onClick={() =>
-                        setPreviewImage(preview)
-                      }
+                      onClick={() => setPreviewImage(preview)}
                     />
                     {editing && (
                       <button
@@ -855,7 +874,7 @@ export default function PlantVarietiesPage() {
               QR Code ต้นพืช
             </h2>
 
-      {selectedQrToken ? (
+            {selectedQrToken ? (
               <>
                 <div id="qr-print" className="text-center">
                   <img
@@ -865,7 +884,6 @@ export default function PlantVarietiesPage() {
                     alt="Plant QR"
                     className="mx-auto p-3 bg-white rounded-xl shadow"
                   />
-
                 </div>
 
                 <div className="text-xs break-all text-center text-gray-500">
@@ -918,14 +936,14 @@ export default function PlantVarietiesPage() {
 
       {previewImage && (
         <div
-            className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
-            onClick={() => setPreviewImage(null)}
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
+          onClick={() => setPreviewImage(null)}
         >
-            <img
+          <img
             src={previewImage}
             className="max-w-[90%] max-h-[90%] rounded-lg shadow-lg"
             onClick={(e) => e.stopPropagation()}
-            />
+          />
         </div>
       )}
     </div>
