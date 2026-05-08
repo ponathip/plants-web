@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import dynamic from "next/dynamic";
+import Script from "next/script";
 import CkEditorField from "@/components/CkEditorField"
 
 interface PlantSpecies {
@@ -125,69 +125,82 @@ export default function PlantVarietiesPage() {
   }
 
   const openUploadWidget = () => {
-    if (!(window as any).cloudinary) {
-      alert("Cloudinary not loaded");
-      return;
-    }
+  if (typeof window === "undefined") return;
 
-    if (openingUpload || uploadingImage) return;
-    setOpeningUpload(true);
+  const cloudinary = (window as any).cloudinary;
 
-    const widget = (window as any).cloudinary.createUploadWidget(
-      {
-        cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-        uploadPreset: "plants_varieties",
-        sources: ["local", "camera"],
-        multiple: false,
-        maxFiles: 1,
-        cropping: false,
-        showAdvancedOptions: false,
-        maxFileSize: 2000000,
-        clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
-        resourceType: "image",
-        folder: "plants/varieties",
-      },
-      (error: any, result: any) => {
-        if (result?.event === "display-changed") {
-          setOpeningUpload(false);
-        }
+  if (!cloudinary) {
+    alert("Cloudinary ยังโหลดไม่เสร็จ กรุณารอสักครู่แล้วลองใหม่");
+    return;
+  }
 
-        if (result?.event === "upload-added") {
-          setUploadingImage(true);
-        }
+  if (openingUpload || uploadingImage) return;
 
-        if (!error && result?.event === "success") {
-          setOpeningUpload(false);
-          setUploadingImage(false);
+  setOpeningUpload(true);
 
-          const url = result.info.secure_url;
-          const publicId = result.info.public_id;
-
-          setForm((prev) => ({
-            ...prev,
-            image_url: url,
-            image_public_id: publicId,
-            cover_image_url: prev.cover_image_url || url,
-          }));
-
-          setPreview(url);
-        }
-
-        if (result?.event === "close") {
-          setOpeningUpload(false);
-          setUploadingImage(false);
-        }
-
-        if (error) {
-          console.error(error);
-          setOpeningUpload(false);
-          setUploadingImage(false);
-        }
+  const widget = cloudinary.createUploadWidget(
+    {
+      cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dk7hhxcwn",
+      uploadPreset: "plants_varieties",
+      sources: ["local", "camera"],
+      multiple: false,
+      maxFiles: 1,
+      cropping: false,
+      showAdvancedOptions: false,
+      maxFileSize: 2000000,
+      clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
+      resourceType: "image",
+      folder: "plants/varieties",
+    },
+    (error: any, result: any) => {
+      if (error) {
+        console.error("Cloudinary upload error:", error);
+        setOpeningUpload(false);
+        setUploadingImage(false);
+        alert("อัปโหลดรูปไม่สำเร็จ");
+        return;
       }
-    );
 
-    widget.open();
-  };
+      if (result?.event === "display-changed") {
+        setOpeningUpload(false);
+      }
+
+      if (result?.event === "upload-added") {
+        setOpeningUpload(false);
+        setUploadingImage(true);
+      }
+
+      if (result?.event === "success") {
+        const url = result.info.secure_url;
+        const publicId = result.info.public_id;
+
+        setForm((prev) => ({
+          ...prev,
+          image_url: url,
+          image_public_id: publicId,
+          cover_image_url: prev.cover_image_url || url,
+        }));
+
+        setPreview(url);
+        setOpeningUpload(false);
+        setUploadingImage(false);
+      }
+
+      if (result?.event === "close") {
+        setOpeningUpload(false);
+        setUploadingImage(false);
+      }
+    }
+  );
+
+  if (!widget) {
+    setOpeningUpload(false);
+    alert("ไม่สามารถเปิด Cloudinary Widget ได้");
+    return;
+  }
+
+  widget.open();
+};
 
   useEffect(() => {
     fetchPlantVarieties();
@@ -404,6 +417,10 @@ export default function PlantVarietiesPage() {
 
   return (
     <div className="space-y-6">
+      <Script
+        src="https://upload-widget.cloudinary.com/global/all.js"
+        strategy="afterInteractive"
+      />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">🌿 สายพันธุ์พืช</h1>
