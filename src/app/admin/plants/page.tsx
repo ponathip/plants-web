@@ -10,6 +10,7 @@ import { useUser } from "@/context/UserContext";
 import { useGarden } from "@/context/GardenContext";
 import { toast } from "sonner";
 import Script from "next/script";
+import { QRCodeSVG } from "qrcode.react";
 
 type PlantStatus = "alive" | "sold" | "dead";
 type SourceType = "purchase" | "propagation" | "unknown";
@@ -147,6 +148,10 @@ export default function PlantsAdminPage() {
   const [openingUpload, setOpeningUpload] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [selectedPrintIds, setSelectedPrintIds] = useState<number[]>([]);
+  const [printLayout, setPrintLayout] = useState<"12" | "8">("12");
+
+  const selectedPlants = plants.filter((p) => selectedPrintIds.includes(p.id!));
 
   const showPurchaseFields = form.source_type === "purchase";
   const showRootstockFields =
@@ -349,6 +354,21 @@ export default function PlantsAdminPage() {
     }
 
     widget.open();
+  };
+
+  const togglePrintPlant = (id: number) => {
+    setSelectedPrintIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+
+  const handlePrintQr = () => {
+    if (selectedPrintIds.length === 0) {
+      toastError("กรุณาเลือกต้นไม้");
+      return;
+    }
+
+    window.print();
   };
 
   const handleExport = () => {
@@ -622,6 +642,23 @@ export default function PlantsAdminPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-gray-700 text-left">
               <tr className="border-t dark:border-gray-700">
+                <th className="p-3 w-10">
+                  <input
+                    type="checkbox"
+                    checked={
+                      plants.length > 0 &&
+                      selectedPrintIds.length === plants.length
+                    }
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedPrintIds(plants.map((p) => p.id!));
+                      } else {
+                        setSelectedPrintIds([]);
+                      }
+                    }}
+                  />
+                </th>
+
                 <th className="p-3">ID</th>
                 {isSuper && <th className="p-3">สวน</th>}
                 <th className="p-3">รหัสต้น</th>
@@ -637,6 +674,14 @@ export default function PlantsAdminPage() {
                   key={p.id}
                   className="border-t hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
                 >
+                  <td className="p-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedPrintIds.includes(p.id!)}
+                      onChange={() => togglePrintPlant(p.id!)}
+                    />
+                  </td>
+
                   <td className="p-3">{p.id}</td>
                   {isSuper && <td className="p-3">{p.garden_name || "-"}</td>}
                   <td className="p-3">{p.plant_code || "-"}</td>
@@ -690,6 +735,62 @@ export default function PlantsAdminPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {selectedPrintIds.length > 0 && (
+        <div className="rounded-2xl border border-green-700 bg-green-950/20 p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-lg font-bold">
+                เลือกแล้ว {selectedPrintIds.length} ต้น
+              </div>
+
+              <div className="flex flex-wrap gap-2 mt-2">
+                {selectedPlants.map((p) => (
+                  <div
+                    key={p.id}
+                    className="px-3 py-1 rounded-full bg-gray-800 text-sm"
+                  >
+                    {p.plant_code}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={() => setSelectedPrintIds([])}
+              className="text-sm text-red-400"
+            >
+              ยกเลิกการเลือก
+            </button>
+          </div>
+
+          <div className="rounded-xl border border-gray-700 p-4 space-y-4">
+            <div className="text-lg font-bold">พิมพ์ QR Code</div>
+
+            <div className="flex flex-wrap gap-4 items-center">
+              <div>
+                <div className="text-sm mb-1">รูปแบบ</div>
+
+                <select
+                  value={printLayout}
+                  onChange={(e) => setPrintLayout(e.target.value as "12" | "8")}
+                  className="border px-3 py-2 rounded bg-white dark:bg-gray-800"
+                >
+                  <option value="12">12 ใบ / หน้า</option>
+                  <option value="8">8 ใบ / หน้า</option>
+                </select>
+              </div>
+
+              <button
+                onClick={handlePrintQr}
+                className="bg-green-700 hover:bg-green-800 text-white px-5 py-3 rounded-xl"
+              >
+                🖨 พิมพ์ / บันทึก PDF
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1319,6 +1420,82 @@ export default function PlantsAdminPage() {
           </div>
         </div>
       )}
+
+      <div id="qr-print-area" className="hidden print:block">
+        <div
+          className={`grid gap-[5mm] ${
+            printLayout === "12" ? "grid-cols-3" : "grid-cols-2"
+          }`}
+          style={{
+            width: "194mm",
+            margin: "0 auto",
+          }}
+        >
+          {selectedPlants.map((p) => {
+            const qrUrl = `${window.location.origin}/qr/plant/${p.qr_token}`;
+
+            return (
+              <div
+                key={p.id}
+                className="border border-dashed rounded-xl text-center p-4"
+                style={{
+                  height: printLayout === "12" ? "65mm" : "90mm",
+                }}
+              >
+                <div className="text-[10px] font-bold text-green-700 mb-2">
+                  SCAN FOR PLANT INFO
+                </div>
+
+                <QRCodeSVG
+                  value={qrUrl}
+                  size={printLayout === "12" ? 140 : 180}
+                  level="H"
+                  includeMargin
+                />
+
+                <div className="mt-2 text-sm font-bold">
+                  {p.display_name || p.name}
+                </div>
+
+                <div className="text-xs border rounded-full inline-block px-2 py-1 mt-1">
+                  {p.plant_code}
+                </div>
+
+                <div className="text-xs mt-1 text-gray-500">
+                  {p.garden_name || "สวนหลัก"}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <style jsx global>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+
+          #qr-print-area,
+          #qr-print-area * {
+            visibility: visible;
+          }
+
+          #qr-print-area {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 8mm;
+            background: white;
+          }
+
+          @page {
+            size: A4;
+            margin: 8mm;
+          }
+        }
+      `}</style>
+
       {previewImage && (
         <div
           className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
