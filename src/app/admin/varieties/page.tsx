@@ -740,7 +740,7 @@ export default function PlantVarietiesPage() {
 
       </div>
 
-      <section className="qr-print-only">
+      <section id="qr-print-area" className="qr-print-only">
         <div className="qr-print-page">
           <div className="qr-print-header">
             <div>
@@ -982,32 +982,59 @@ export default function PlantVarietiesPage() {
             margin: 8mm;
           }
 
-          html, body {
-            width: 210mm;
-            min-height: 297mm;
+          html,
+          body {
+            width: 210mm !important;
+            min-height: 297mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            overflow: visible !important;
+          }
+
+          /* ซ่อนทุกอย่างในหน้า admin/layout/sidebar ก่อน */
+          body * {
+            visibility: hidden !important;
+          }
+
+          /* แสดงเฉพาะกระดาษ QR */
+          #qr-print-area,
+          #qr-print-area * {
+            visibility: visible !important;
+          }
+
+          #qr-print-area {
+            display: block !important;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 194mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
             background: white !important;
           }
 
-          .admin-screen,
-          .fixed,
-          .no-print {
-            display: none !important;
-          }
-
-          .qr-print-only {
-            display: block !important;
-          }
-
           .qr-print-page {
-            width: 194mm;
-            min-height: 281mm;
-            margin: 0;
-            box-shadow: none;
+            display: block !important;
+            width: 194mm !important;
+            min-height: 281mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            color: #172617 !important;
+            box-shadow: none !important;
+          }
+
+          .qr-print-grid-12,
+          .qr-print-grid-8 {
+            display: grid !important;
           }
 
           .qr-print-card {
-            break-inside: avoid;
-            page-break-inside: avoid;
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
         }
       `}</style>
