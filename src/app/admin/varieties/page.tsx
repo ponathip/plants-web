@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Script from "next/script";
 import CkEditorField from "@/components/CkEditorField";
+import { QRCodeSVG } from "qrcode.react";
 
 interface PlantSpecies {
   id: number;
@@ -60,6 +61,12 @@ export default function PlantVarietiesPage() {
   const [qrUrl, setQrUrl] = useState("");
   const [openQr, setOpenQr] = useState(false);
   const [selectedQrToken, setSelectedQrToken] = useState("");
+
+  const [selectedPrintIds, setSelectedPrintIds] = useState<number[]>([]);
+  const [printLayout, setPrintLayout] = useState<"12" | "8">("12");
+  const [showPrintName, setShowPrintName] = useState(true);
+  const [showPrintCode, setShowPrintCode] = useState(true);
+  const [showPrintGarden, setShowPrintGarden] = useState(true);
 
   const [form, setForm] = useState({
     plant_species_id: "",
@@ -224,6 +231,42 @@ export default function PlantVarietiesPage() {
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const pagedData = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+
+  const printableItems = useMemo(() => {
+    return data.filter((v) => selectedPrintIds.includes(v.id));
+  }, [data, selectedPrintIds]);
+
+  const pageSlots = printLayout === "12" ? 12 : 8;
+  const printGridClass = printLayout === "12" ? "qr-print-grid-12" : "qr-print-grid-8";
+
+  const togglePrintSelect = (id: number) => {
+    setSelectedPrintIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+    );
+  };
+
+  const toggleSelectCurrentPage = () => {
+    const ids = pagedData.map((item) => item.id);
+    const isAllSelected = ids.length > 0 && ids.every((id) => selectedPrintIds.includes(id));
+
+    setSelectedPrintIds((prev) => {
+      if (isAllSelected) {
+        return prev.filter((id) => !ids.includes(id));
+      }
+      return Array.from(new Set([...prev, ...ids]));
+    });
+  };
+
+  const printOrigin = typeof window !== "undefined" ? window.location.origin : "";
+
+  const handlePrintA4 = () => {
+    if (printableItems.length === 0) {
+      alert("กรุณาเลือกพันธุ์พืชก่อนพิมพ์");
+      return;
+    }
+    setTimeout(() => window.print(), 100);
+  };
 
   const resetForm = () => {
     setForm({
@@ -414,6 +457,7 @@ export default function PlantVarietiesPage() {
 
   return (
     <div className="space-y-6">
+      <div className="admin-screen space-y-6">
       <Script
         src="https://upload-widget.cloudinary.com/global/all.js"
         strategy="afterInteractive"
@@ -462,6 +506,116 @@ export default function PlantVarietiesPage() {
         </select>
       </div>
 
+      {selectedPrintIds.length > 0 && (
+        <div className="rounded-2xl border border-green-500/60 bg-green-500/5 p-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="font-semibold text-green-600">
+              เลือกแล้ว {selectedPrintIds.length} รายการ
+            </div>
+            <button
+              type="button"
+              onClick={() => setSelectedPrintIds([])}
+              className="text-sm text-blue-500 hover:underline"
+            >
+              ยกเลิกการเลือก
+            </button>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {printableItems.map((item) => (
+              <span
+                key={item.id}
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-1 text-xs dark:border-gray-600"
+              >
+                {item.short_name || item.name}
+                <button
+                  type="button"
+                  onClick={() => togglePrintSelect(item.id)}
+                  className="text-gray-400 hover:text-red-500"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow dark:border-gray-700 dark:bg-gray-800">
+        <h2 className="mb-4 text-lg font-semibold">พิมพ์ QR Code</h2>
+
+        <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <label className="space-y-1 text-sm">
+              <span className="text-gray-500 dark:text-gray-400">รูปกระดาษ</span>
+              <select
+                value="a4"
+                disabled
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+              >
+                <option>A4 (210 x 297 mm)</option>
+              </select>
+            </label>
+
+            <label className="space-y-1 text-sm">
+              <span className="text-gray-500 dark:text-gray-400">รูปแบบการจัดวาง</span>
+              <select
+                value={printLayout}
+                onChange={(e) => setPrintLayout(e.target.value as "12" | "8")}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+              >
+                <option value="12">12 ใบ / หน้า (3 x 4)</option>
+                <option value="8">8 ใบ / หน้า (2 x 4)</option>
+              </select>
+            </label>
+
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={showPrintName}
+                onChange={(e) => setShowPrintName(e.target.checked)}
+                className="h-4 w-4 accent-green-500"
+              />
+              แสดงชื่อพันธุ์
+            </label>
+
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={showPrintCode}
+                onChange={(e) => setShowPrintCode(e.target.checked)}
+                className="h-4 w-4 accent-green-500"
+              />
+              แสดงชื่อย่อ/โค้ด
+            </label>
+
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={showPrintGarden}
+                onChange={(e) => setShowPrintGarden(e.target.checked)}
+                className="h-4 w-4 accent-green-500"
+              />
+              แสดงชื่อสวน
+            </label>
+          </div>
+
+          <button
+            type="button"
+            onClick={handlePrintA4}
+            disabled={printableItems.length === 0}
+            className="rounded-lg bg-green-600 px-5 py-3 font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            🖨 พิมพ์ / บันทึก PDF
+          </button>
+        </div>
+
+        <p className="mt-3 text-xs text-gray-500">
+          * ตอนพิมพ์ให้เลือก Scale 100% หรือ Actual size เพื่อให้ขนาด QR ไม่เพี้ยน
+        </p>
+      </div>
+
+
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow overflow-x-auto">
         {loading ? (
           <div className="p-6 text-center text-gray-500">
@@ -472,6 +626,14 @@ export default function PlantVarietiesPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 dark:bg-gray-700 text-left">
                 <tr>
+                  <th className="p-3 w-10">
+                    <input
+                      type="checkbox"
+                      checked={pagedData.length > 0 && pagedData.every((item) => selectedPrintIds.includes(item.id))}
+                      onChange={toggleSelectCurrentPage}
+                      className="h-4 w-4 accent-green-500"
+                    />
+                  </th>
                   <th className="p-3">รูป</th>
                   <th className="p-3">ชนิดพืช</th>
                   <th className="p-3">ชื่อพันธุ์</th>
@@ -485,6 +647,14 @@ export default function PlantVarietiesPage() {
               <tbody>
                 {pagedData.map((v) => (
                   <tr key={v.id} className="border-t dark:border-gray-700">
+                    <td className="p-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedPrintIds.includes(v.id)}
+                        onChange={() => togglePrintSelect(v.id)}
+                        className="h-4 w-4 accent-green-500"
+                      />
+                    </td>
                     <td className="p-3">
                       {v.image_url ? (
                         <img
@@ -520,7 +690,7 @@ export default function PlantVarietiesPage() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          const url = `${window.location.origin}/qr/plant/${v.public_qr_token}`;
+                          const url = `${window.location.origin}/qr/varieties/${v.public_qr_token}`;
                           setQrUrl(url);
                           setSelectedQrToken(v.public_qr_token || "");
                           setOpenQr(true);
@@ -535,7 +705,7 @@ export default function PlantVarietiesPage() {
 
                 {pagedData.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="p-6 text-center text-gray-500">
+                    <td colSpan={7} className="p-6 text-center text-gray-500">
                       ไม่มีข้อมูล
                     </td>
                   </tr>
@@ -567,6 +737,280 @@ export default function PlantVarietiesPage() {
           </>
         )}
       </div>
+
+      </div>
+
+      <section className="qr-print-only">
+        <div className="qr-print-page">
+          <div className="qr-print-header">
+            <div>
+              <h1>แบบปริ้น QR Code ต้นไม้</h1>
+              <p>ขนาด A4 (210 x 297 mm)</p>
+            </div>
+            <div className="qr-print-badge">{pageSlots} ใบ/หน้า</div>
+          </div>
+
+          <div className={printGridClass}>
+            {Array.from({ length: Math.max(pageSlots, Math.ceil(printableItems.length / pageSlots) * pageSlots) }).map((_, index) => {
+              const item = printableItems[index];
+
+              if (!item) {
+                return (
+                  <div key={`empty-${index}`} className="qr-print-card qr-print-empty">
+                    <div className="qr-print-empty-leaf">⌁</div>
+                    <div>ว่าง</div>
+                  </div>
+                );
+              }
+
+              const token = item.public_qr_token || String(item.id);
+              const qrValue = `${printOrigin}/qr/varieties/${token}`;
+
+              return (
+                <div key={item.id} className="qr-print-card">
+                  <div className="qr-print-title">🌿 SCAN FOR PLANT INFO</div>
+                  <div className="qr-print-codebox">
+                    <QRCodeSVG value={qrValue} size={printLayout === "12" ? 132 : 156} level="H" includeMargin />
+                  </div>
+                  {showPrintName && (
+                    <div className="qr-print-name">{item.name}</div>
+                  )}
+                  {showPrintCode && (
+                    <div className="qr-print-short">{item.short_name || item.public_qr_token || `ID-${item.id}`}</div>
+                  )}
+                  {showPrintGarden && (
+                    <div className="qr-print-garden">สวนหลัก</div>
+                  )}
+                  <div className="qr-print-leaf qr-print-leaf-left">❧</div>
+                  <div className="qr-print-leaf qr-print-leaf-right">❧</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <style jsx global>{`
+        .qr-print-only {
+          display: none;
+        }
+
+        .qr-print-page {
+          width: 194mm;
+          min-height: 281mm;
+          margin: 0 auto;
+          background: #ffffff;
+          color: #172617;
+          padding: 0;
+          box-sizing: border-box;
+          font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .qr-print-header {
+          height: 22mm;
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          padding: 4mm 2mm 2mm;
+          box-sizing: border-box;
+        }
+
+        .qr-print-header h1 {
+          margin: 0;
+          font-size: 20pt;
+          line-height: 1.1;
+          color: #234016;
+          font-weight: 800;
+        }
+
+        .qr-print-header p {
+          margin: 2mm 0 0;
+          font-size: 10pt;
+          color: #111827;
+        }
+
+        .qr-print-badge {
+          margin-top: 2mm;
+          padding: 2mm 7mm;
+          border-radius: 999px;
+          background: #365314;
+          color: white;
+          font-size: 11pt;
+          font-weight: 700;
+        }
+
+        .qr-print-grid-12,
+        .qr-print-grid-8 {
+          display: grid;
+          gap: 0;
+          border-top: 1px dashed #b5b5b5;
+          border-left: 1px dashed #b5b5b5;
+        }
+
+        .qr-print-grid-12 {
+          grid-template-columns: repeat(3, 1fr);
+        }
+
+        .qr-print-grid-8 {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .qr-print-card {
+          position: relative;
+          height: 64.75mm;
+          border-right: 1px dashed #b5b5b5;
+          border-bottom: 1px dashed #b5b5b5;
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          background: linear-gradient(180deg, #fffef8 0%, #ffffff 100%);
+        }
+
+        .qr-print-grid-8 .qr-print-card {
+          height: 64.75mm;
+        }
+
+        .qr-print-card::before {
+          content: "";
+          position: absolute;
+          inset: 5mm;
+          border: 1.5px solid #6b8e3f;
+          border-radius: 5mm;
+          pointer-events: none;
+        }
+
+        .qr-print-title {
+          z-index: 1;
+          font-size: 7pt;
+          color: #31552a;
+          font-weight: 800;
+          letter-spacing: 0.2px;
+          margin-bottom: 1.5mm;
+        }
+
+        .qr-print-codebox {
+          z-index: 1;
+          background: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 3mm;
+          padding: 1mm;
+          box-shadow: 0 1mm 2mm rgba(15, 23, 42, 0.12);
+        }
+
+        .qr-print-name {
+          z-index: 1;
+          max-width: 44mm;
+          margin-top: 2mm;
+          font-size: 9pt;
+          line-height: 1.12;
+          text-align: center;
+          font-weight: 800;
+          color: #111827;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .qr-print-grid-8 .qr-print-name {
+          max-width: 70mm;
+          font-size: 10pt;
+        }
+
+        .qr-print-short {
+          z-index: 1;
+          margin-top: 1mm;
+          border: 1px solid #6b8e3f;
+          border-radius: 999px;
+          padding: 0.5mm 3mm;
+          font-size: 7pt;
+          line-height: 1.1;
+          font-weight: 800;
+          color: #203a18;
+          background: #fbfff4;
+        }
+
+        .qr-print-garden {
+          z-index: 1;
+          margin-top: 1mm;
+          font-size: 7pt;
+          font-weight: 700;
+          color: #334155;
+        }
+
+        .qr-print-leaf {
+          position: absolute;
+          z-index: 0;
+          bottom: 4mm;
+          color: #4d7c0f;
+          font-size: 28pt;
+          opacity: 0.9;
+          line-height: 1;
+        }
+
+        .qr-print-leaf-left {
+          left: 6mm;
+          transform: rotate(-25deg);
+        }
+
+        .qr-print-leaf-right {
+          right: 6mm;
+          transform: scaleX(-1) rotate(-25deg);
+        }
+
+        .qr-print-empty {
+          color: #cbd5e1;
+          font-size: 10pt;
+          background: white;
+        }
+
+        .qr-print-empty::before {
+          border-color: #e5e7eb;
+        }
+
+        .qr-print-empty-leaf {
+          font-size: 36pt;
+          line-height: 1;
+          color: #e5e7eb;
+        }
+
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 8mm;
+          }
+
+          html, body {
+            width: 210mm;
+            min-height: 297mm;
+            background: white !important;
+          }
+
+          .admin-screen,
+          .fixed,
+          .no-print {
+            display: none !important;
+          }
+
+          .qr-print-only {
+            display: block !important;
+          }
+
+          .qr-print-page {
+            width: 194mm;
+            min-height: 281mm;
+            margin: 0;
+            box-shadow: none;
+          }
+
+          .qr-print-card {
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+        }
+      `}</style>
 
       {open && (
         <div className="fixed inset-0 z-50 bg-black/40 overflow-y-auto">
