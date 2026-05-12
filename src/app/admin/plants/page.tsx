@@ -363,12 +363,17 @@ export default function PlantsAdminPage() {
   };
 
   const handlePrintQr = () => {
-    if (selectedPrintIds.length === 0) {
+    if (selectedPlants.length === 0) {
       toastError("กรุณาเลือกต้นไม้");
       return;
     }
 
-    window.print();
+    localStorage.setItem(
+      "plant_qr_print_items",
+      JSON.stringify(selectedPlants),
+    );
+
+    window.open("/admin/plants/print-qr", "_blank");
   };
 
   const handleExport = () => {
@@ -1420,81 +1425,6 @@ export default function PlantsAdminPage() {
           </div>
         </div>
       )}
-
-      <div id="qr-print-area" className="hidden print:block">
-        <div
-          className={`grid gap-[5mm] ${
-            printLayout === "12" ? "grid-cols-3" : "grid-cols-2"
-          }`}
-          style={{
-            width: "194mm",
-            margin: "0 auto",
-          }}
-        >
-          {selectedPlants.map((p) => {
-            const qrUrl = `${window.location.origin}/qr/plant/${p.qr_token}`;
-
-            return (
-              <div
-                key={p.id}
-                className="border border-dashed rounded-xl text-center p-4"
-                style={{
-                  height: printLayout === "12" ? "65mm" : "90mm",
-                }}
-              >
-                <div className="text-[10px] font-bold text-green-700 mb-2">
-                  SCAN FOR PLANT INFO
-                </div>
-
-                <QRCodeSVG
-                  value={qrUrl}
-                  size={printLayout === "12" ? 140 : 180}
-                  level="H"
-                  includeMargin
-                />
-
-                <div className="mt-2 text-sm font-bold">
-                  {p.display_name || p.name}
-                </div>
-
-                <div className="text-xs border rounded-full inline-block px-2 py-1 mt-1">
-                  {p.plant_code}
-                </div>
-
-                <div className="text-xs mt-1 text-gray-500">
-                  {p.garden_name || "สวนหลัก"}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-      <style jsx global>{`
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-
-          #qr-print-area,
-          #qr-print-area * {
-            visibility: visible;
-          }
-
-          #qr-print-area {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            padding: 8mm;
-            background: white;
-          }
-
-          @page {
-            size: A4;
-            margin: 8mm;
-          }
-        }
-      `}</style>
 
       {previewImage && (
         <div
