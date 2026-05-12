@@ -153,7 +153,7 @@ export default function SaleCreatePage() {
         sources: ["local", "camera"],
         multiple: false,
         maxFiles: 1,
-        maxFileSize: 2000000,
+        maxFileSize: 5000000,
         clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
         resourceType: "image",
         folder: "plant/sale",

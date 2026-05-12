@@ -151,7 +151,7 @@ export default function PlantVarietiesPage() {
         maxFiles: 1,
         cropping: false,
         showAdvancedOptions: false,
-        maxFileSize: 2000000,
+        maxFileSize: 5000000,
         clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
         resourceType: "image",
         folder: "plants/varieties",
