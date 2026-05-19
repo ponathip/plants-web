@@ -57,6 +57,18 @@ type PurchaseImage = {
   purchase_item_id?: number | null;
 };
 
+type PlantGraft = {
+  id: number;
+  graft_variety_name?: string;
+  method: "grafting" | "budding" | "other";
+  source_type: "purchase" | "own_garden" | "unknown";
+  source_plant_name?: string | null;
+  position_name?: string | null;
+  grafted_at?: string | null;
+  status: "alive" | "failed" | "removed";
+  note?: string | null;
+};
+
 function formatMoney(value?: number | string | null) {
   if (value === null || value === undefined || value === "") return "-";
   return `${Number(value).toLocaleString("th-TH")} บาท`;
@@ -92,6 +104,8 @@ export default function PlantQrPage() {
   const [openingUpload, setOpeningUpload] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
 
+  const [grafts, setGrafts] = useState<PlantGraft[]>([]);
+
   const [timelineForm, setTimelineForm] = useState({
     title: "",
     description: "",
@@ -120,6 +134,7 @@ export default function PlantQrPage() {
           ? data.purchase_item_images
           : [],
       );
+      setGrafts(Array.isArray(data.grafts) ? data.grafts : []);
     } catch (err: any) {
       setError(err.message || "โหลดข้อมูลไม่สำเร็จ");
       setPlant(null);
@@ -154,8 +169,16 @@ export default function PlantQrPage() {
         sources: ["local", "camera"],
         multiple: false,
         maxFiles: 1,
-        maxFileSize: 5000000,
-        clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
+        maxFileSize: 20000000,
+        clientAllowedFormats: ["jpg", "jpeg", "png", "webp", "heic", "heif"],
+        transformation: [
+          {
+            width: 1600,
+            crop: "limit",
+            quality: "auto",
+            fetch_format: "auto",
+          },
+        ],
         resourceType: "image",
         folder: "plants/timeline",
       },
@@ -300,6 +323,18 @@ export default function PlantQrPage() {
     if (status === "dead") return "bg-red-100 text-red-800";
     if (status === "sold") return "bg-blue-100 text-blue-800";
     return "bg-gray-100 text-gray-800";
+  };
+
+  const graftMethodLabel: Record<string, string> = {
+    grafting: "เสียบยอด",
+    budding: "ติดตา",
+    other: "อื่นๆ",
+  };
+
+  const graftStatusLabel: Record<string, string> = {
+    alive: "ติดแล้ว / ยังอยู่",
+    failed: "ไม่ติด",
+    removed: "ตัดออกแล้ว",
   };
 
   const displayName =
@@ -478,6 +513,45 @@ export default function PlantQrPage() {
             {error}
           </div>
         )}
+
+        {grafts.length > 0 && (
+        <section className="rounded-3xl border border-emerald-100 bg-white/90 p-5 shadow-sm">
+          <h2 className="text-lg font-bold text-emerald-900 mb-3">
+            ยอด / สายพันธุ์บนต้นนี้
+          </h2>
+
+          <div className="space-y-3">
+            {grafts.map((graft) => (
+              <div
+                key={graft.id}
+                className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4"
+              >
+                <div className="font-bold text-emerald-900">
+                  {graft.graft_variety_name || "ไม่ระบุสายพันธุ์"}
+                </div>
+
+                <div className="mt-1 text-sm text-emerald-800">
+                  วิธี: {graftMethodLabel[graft.method] || graft.method}
+                </div>
+
+                {graft.position_name && (
+                  <div className="text-sm text-emerald-800">
+                    ตำแหน่ง: {graft.position_name}
+                  </div>
+                )}
+
+                <div className="text-sm text-emerald-800">
+                  สถานะ: {graftStatusLabel[graft.status] || graft.status}
+                </div>
+
+                {graft.note && (
+                  <div className="mt-2 text-sm text-gray-600">{graft.note}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
         <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5">
           <h2 className="font-semibold text-lg">📈 การเติบโต</h2>

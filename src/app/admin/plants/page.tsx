@@ -259,30 +259,31 @@ export default function PlantsAdminPage() {
   }, [plants]);
 
   const selectedSupplier = suppliers.find(
-  (s) => String(s.id) === String(form.supplier_id),
-);
+    (s) => String(s.id) === String(form.supplier_id),
+  );
 
-const filteredPurchaseItems = useMemo(() => {
-  return purchaseItems.filter((item) => {
-    if (!form.supplier_id) return true;
+  const filteredPurchaseItems = useMemo(() => {
+    return purchaseItems.filter((item) => {
+      if (!form.supplier_id) return true;
 
-    const itemSupplierId =
-      item.supplier_id ??
-      item.supplierId ??
-      item.purchase_supplier_id;
+      const itemSupplierId =
+        item.supplier_id ?? item.supplierId ?? item.purchase_supplier_id;
 
-    if (itemSupplierId) {
-      return String(itemSupplierId) === String(form.supplier_id);
-    }
+      if (itemSupplierId) {
+        return String(itemSupplierId) === String(form.supplier_id);
+      }
 
-    // fallback กรณี backend ส่งมาแค่ supplier_name
-    if (selectedSupplier?.name && item.supplier_name) {
-      return String(item.supplier_name).trim() === String(selectedSupplier.name).trim();
-    }
+      // fallback กรณี backend ส่งมาแค่ supplier_name
+      if (selectedSupplier?.name && item.supplier_name) {
+        return (
+          String(item.supplier_name).trim() ===
+          String(selectedSupplier.name).trim()
+        );
+      }
 
-    return false;
-  });
-}, [purchaseItems, form.supplier_id, selectedSupplier]);
+      return false;
+    });
+  }, [purchaseItems, form.supplier_id, selectedSupplier]);
 
   const filteredVarieties = useMemo(() => {
     if (!form.species_id) return varieties;
@@ -315,8 +316,16 @@ const filteredPurchaseItems = useMemo(() => {
         sources: ["local", "camera"],
         multiple: false,
         maxFiles: 1,
-        maxFileSize: 5000000,
-        clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
+        maxFileSize: 20000000,
+        clientAllowedFormats: ["jpg", "jpeg", "png", "webp", "heic", "heif"],
+        transformation: [
+          {
+            width: 1600,
+            crop: "limit",
+            quality: "auto",
+            fetch_format: "auto",
+          },
+        ],
         resourceType: "image",
         folder: "plants/timeline",
       },
@@ -559,15 +568,17 @@ const filteredPurchaseItems = useMemo(() => {
         src="https://upload-widget.cloudinary.com/global/all.js"
         strategy="afterInteractive"
       />
-      <div className="flex flex-wrap gap-4 justify-between items-center">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h1 className="text-2xl font-bold">🌱 ต้นไม้</h1>
-        <div className="flex items-center gap-3 flex-wrap">
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:flex md:w-auto">
           <button
             onClick={handleExport}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
           >
             Export CSV
           </button>
+
           {(isSuper ||
             permissions.includes("plant.create") ||
             permissions.includes("plant.manage")) && (
@@ -581,7 +592,7 @@ const filteredPurchaseItems = useMemo(() => {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
         <input
           placeholder="ค้นหาชื่อหรือรหัสต้น..."
           value={search}
@@ -589,7 +600,7 @@ const filteredPurchaseItems = useMemo(() => {
             setPage(1);
             setSearch(e.target.value);
           }}
-          className="border px-3 py-2 rounded w-64 bg-white dark:bg-gray-800"
+          className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800"
         />
 
         <select
@@ -598,7 +609,7 @@ const filteredPurchaseItems = useMemo(() => {
             setPage(1);
             setFilter(e.target.value as any);
           }}
-          className="border px-3 py-2 rounded bg-white dark:bg-gray-800"
+          className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800"
         >
           <option value="all">ทั้งหมด</option>
           <option value="alive">ปกติ</option>
@@ -613,7 +624,7 @@ const filteredPurchaseItems = useMemo(() => {
             setPage(1);
             setFrom(e.target.value);
           }}
-          className="border px-3 py-2 rounded bg-white dark:bg-gray-800"
+          className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800"
         />
 
         <input
@@ -623,7 +634,7 @@ const filteredPurchaseItems = useMemo(() => {
             setPage(1);
             setTo(e.target.value);
           }}
-          className="border px-3 py-2 rounded bg-white dark:bg-gray-800"
+          className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800"
         />
 
         {isSuper && (
@@ -633,7 +644,7 @@ const filteredPurchaseItems = useMemo(() => {
               setPage(1);
               setGardenFilter(e.target.value);
             }}
-            className="border px-3 py-2 rounded bg-white dark:bg-gray-800"
+            className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800"
           >
             <option value="">ทุกสวน</option>
             {gardens.map((g) => (
@@ -652,104 +663,180 @@ const filteredPurchaseItems = useMemo(() => {
       )}
 
       {!loading && plants.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-700 text-left">
-              <tr className="border-t dark:border-gray-700">
-                <th className="p-3 w-10">
-                  <input
-                    type="checkbox"
-                    checked={
-                      plants.length > 0 &&
-                      selectedPrintIds.length === plants.length
-                    }
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedPrintIds(plants.map((p) => p.id!));
-                      } else {
-                        setSelectedPrintIds([]);
-                      }
-                    }}
-                  />
-                </th>
-
-                <th className="p-3">ID</th>
-                {isSuper && <th className="p-3">สวน</th>}
-                <th className="p-3">รหัสต้น</th>
-                <th className="p-3">ชื่อ</th>
-                <th className="p-3">สถานะ</th>
-                <th className="p-3">จัดการ</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {plants.map((p) => (
-                <tr
-                  key={p.id}
-                  className="border-t hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
-                >
-                  <td className="p-3">
+        <>
+          {/* Desktop table */}
+          <div className="desktop-table bg-white dark:bg-gray-800 rounded-2xl shadow overflow-x-auto">
+            <table className="min-w-full">
+              <thead className="bg-gray-50 dark:bg-gray-700 text-left">
+                <tr className="border-t dark:border-gray-700">
+                  <th className="p-3 w-10">
                     <input
                       type="checkbox"
-                      checked={selectedPrintIds.includes(p.id!)}
-                      onChange={() => togglePrintPlant(p.id!)}
+                      checked={
+                        plants.length > 0 &&
+                        selectedPrintIds.length === plants.length
+                      }
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedPrintIds(plants.map((p) => p.id!));
+                        } else {
+                          setSelectedPrintIds([]);
+                        }
+                      }}
                     />
-                  </td>
+                  </th>
 
-                  <td className="p-3">{p.id}</td>
-                  {isSuper && <td className="p-3">{p.garden_name || "-"}</td>}
-                  <td className="p-3">{p.plant_code || "-"}</td>
-                  <td className="p-3">{p.display_name || p.name || "-"}</td>
-                  <td className="p-3">
-                    <span className="px-2 py-1 text-xs rounded bg-green-100 text-green-800">
-                      {statusLabel[p.status]}
-                    </span>
-                  </td>
-                  <td className="p-3 space-x-2">
-                    <button
-                      onClick={() => openEdit(p)}
-                      className="px-2 py-1 text-xs rounded bg-green-900 text-white"
-                    >
-                      อัพเดท
-                    </button>
-                    {(isSuper ||
-                      permissions.includes("plant.delete") ||
-                      permissions.includes("plant.manage")) && (
+                  <th className="p-3">ID</th>
+                  {isSuper && <th className="p-3">สวน</th>}
+                  <th className="p-3">รหัสต้น</th>
+                  <th className="p-3">ชื่อ</th>
+                  <th className="p-3">สถานะ</th>
+                  <th className="p-3">จัดการ</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {plants.map((p) => (
+                  <tr
+                    key={p.id}
+                    className="border-t hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
+                  >
+                    <td className="p-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedPrintIds.includes(p.id!)}
+                        onChange={() => togglePrintPlant(p.id!)}
+                      />
+                    </td>
+
+                    <td className="p-3">{p.id}</td>
+                    {isSuper && <td className="p-3">{p.garden_name || "-"}</td>}
+                    <td className="p-3">{p.plant_code || "-"}</td>
+                    <td className="max-w-[140px] whitespace-normal break-words">
+                      {p.display_name || p.name || "-"}
+                    </td>
+                    <td className="p-3">
+                      <span className="px-2 py-1 text-xs rounded bg-green-100 text-green-800">
+                        {statusLabel[p.status]}
+                      </span>
+                    </td>
+                    <td className="p-3 space-x-2">
                       <button
-                        key={p.id}
+                        onClick={() => openEdit(p)}
+                        className="px-2 py-1 text-xs rounded bg-green-900 text-white"
+                      >
+                        อัพเดท
+                      </button>
+                      {(isSuper ||
+                        permissions.includes("plant.delete") ||
+                        permissions.includes("plant.manage")) && (
+                        <button
+                          key={p.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deletePlant(p.id!);
+                          }}
+                          className="px-2 py-1 text-xs rounded bg-red-500 text-white"
+                        >
+                          ลบ
+                        </button>
+                      )}
+                      <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          deletePlant(p.id!);
+                          const url = `${window.location.origin}/qr/plant/${p.qr_token}`;
+                          setQrUrl(url);
+                          setSelectedQrToken(p.qr_token || "");
+                          setOpenQr(true);
                         }}
-                        className="px-2 py-1 text-xs rounded bg-red-500 text-white"
+                        className="px-2 py-1 text-xs rounded bg-blue-500 text-white"
                       >
-                        ลบ
+                        QR
                       </button>
-                    )}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const url = `${window.location.origin}/qr/plant/${p.qr_token}`;
-                        setQrUrl(url);
-                        setSelectedQrToken(p.qr_token || "");
-                        setOpenQr(true);
-                      }}
-                      className="px-2 py-1 text-xs rounded bg-blue-500 text-white"
-                    >
-                      QR
-                    </button>
 
-                    <Link href={`/admin/plants/${p.id}`}>
-                      <span className="px-2 py-1 text-xs rounded bg-green-500 text-white">
-                        รายละเอียด
-                      </span>
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                      <Link href={`/admin/plants/${p.id}`}>
+                        <span className="px-2 py-1 text-xs rounded bg-green-500 text-white">
+                          รายละเอียด
+                        </span>
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="mobile-cards space-y-3">
+            {plants.map((p) => (
+              <div
+                key={p.id}
+                className="rounded-2xl border border-gray-700 bg-gray-800/60 p-4 space-y-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <div className="text-lg font-semibold break-words">
+                      {p.display_name || p.name || "-"}
+                    </div>
+
+                    <div className="text-sm text-gray-400 mt-1">
+                      {p.plant_code || "-"}
+                    </div>
+                  </div>
+
+                  <span className="px-2 py-1 text-xs rounded bg-green-100 text-green-800 shrink-0">
+                    {statusLabel[p.status]}
+                  </span>
+                </div>
+
+                {isSuper && (
+                  <div className="text-sm text-gray-400">
+                    สวน: {p.garden_name || "-"}
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <button
+                    onClick={() => openEdit(p)}
+                    className="flex-1 min-w-[90px] px-3 py-2 rounded bg-green-900 text-white text-sm"
+                  >
+                    อัพเดท
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const url = `${window.location.origin}/qr/plant/${p.qr_token}`;
+                      setQrUrl(url);
+                      setSelectedQrToken(p.qr_token || "");
+                      setOpenQr(true);
+                    }}
+                    className="flex-1 min-w-[90px] px-3 py-2 rounded bg-blue-600 text-white text-sm"
+                  >
+                    QR
+                  </button>
+
+                  <Link
+                    href={`/admin/plants/${p.id}`}
+                    className="flex-1 min-w-[90px] px-3 py-2 rounded bg-green-600 text-white text-sm text-center"
+                  >
+                    รายละเอียด
+                  </Link>
+
+                  {(isSuper ||
+                    permissions.includes("plant.delete") ||
+                    permissions.includes("plant.manage")) && (
+                    <button
+                      onClick={() => deletePlant(p.id!)}
+                      className="w-full px-3 py-2 rounded bg-red-600 text-white text-sm"
+                    >
+                      ลบ
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {selectedPrintIds.length > 0 && (
@@ -833,8 +920,8 @@ const filteredPurchaseItems = useMemo(() => {
       {open && (
         <div className="fixed inset-0 z-50 bg-black/50 overflow-y-auto">
           <div className="min-h-screen flex items-start justify-center p-4 sm:p-6">
-            <div className="w-auto max-w-5xl my-4 rounded-2xl bg-white dark:bg-gray-900 shadow-2xl max-h-[calc(100vh-2rem)] overflow-hidden border border-gray-200 dark:border-gray-800">
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+            <div className="w-full max-w-5xl my-4 rounded-2xl bg-white dark:bg-gray-900 shadow-2xl max-h-[calc(100vh-2rem)] overflow-hidden border border-gray-200 dark:border-gray-800">
+              <div className="px-3 md:px-6 py-3 md:py-4 border-b border-gray-200 dark:border-gray-800">
                 <h2 className="text-lg font-semibold">
                   {editing ? "แก้ไขต้นไม้" : "เพิ่มต้นไม้"}
                 </h2>
@@ -1029,13 +1116,18 @@ const filteredPurchaseItems = useMemo(() => {
                                   : "-";
 
                               const price =
-                                item.display_price || item.cost_per_unit || item.unit_price || 0;
+                                item.display_price ||
+                                item.cost_per_unit ||
+                                item.unit_price ||
+                                0;
 
                               return (
                                 <option key={item.id} value={item.id}>
                                   #{item.purchase_id || item.id} | {dateText} |{" "}
-                                  {item.supplier_name || "-"} | {item.species_name || "-"} /{" "}
-                                  {item.variety_name || "-"} | {item.item_type || "-"} | ฿{price}
+                                  {item.supplier_name || "-"} |{" "}
+                                  {item.species_name || "-"} /{" "}
+                                  {item.variety_name || "-"} |{" "}
+                                  {item.item_type || "-"} | ฿{price}
                                 </option>
                               );
                             })}
@@ -1349,7 +1441,7 @@ const filteredPurchaseItems = useMemo(() => {
                 </div>
               </div>
 
-              <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 px-6 py-4 flex justify-end gap-2">
+              <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 px-3 md:px-6 py-3 md:py-4 flex justify-end gap-2">
                 <button
                   onClick={() => {
                     setOpen(false);

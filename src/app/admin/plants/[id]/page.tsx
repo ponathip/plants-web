@@ -88,6 +88,8 @@ type PlantGraft = {
   grafted_at?: string | null;
   status: "alive" | "failed" | "removed";
   note?: string | null;
+  image_url?: string | null;
+  image_public_id?: string | null;
 };
 
 function formatDateTime(value?: string) {
@@ -134,6 +136,8 @@ export default function PlantDetailPage() {
 
   const [openGraftModal, setOpenGraftModal] = useState(false);
   const [editingGraftId, setEditingGraftId] = useState<number | null>(null);
+  const [openingGraftUpload, setOpeningGraftUpload] = useState(false);
+  const [uploadingGraftImage, setUploadingGraftImage] = useState(false);
   const [graftForm, setGraftForm] = useState({
     graft_variety_id: "",
     method: "grafting",
@@ -144,6 +148,8 @@ export default function PlantDetailPage() {
     grafted_at: "",
     status: "alive",
     note: "",
+    image_url: "",
+    image_public_id: "",
   });
 
   const [sourcePlantOptions, setSourcePlantOptions] = useState<any[]>([]);
@@ -158,15 +164,21 @@ export default function PlantDetailPage() {
       setLoading(true);
       setError("");
 
-      const [plantData, timelineData, graftData, varietyData, plantListData, purchaseItemData,] =
-        await Promise.all([
-          api(`/plants/${id}`),
-          api(`/plant-timelines/${id}/timeline`),
-          api(`/plants/${id}/grafts`),
-          api("/plant-varieties"),
-          api("/plants?limit=500"),
-          api("/purchase-items"),
-        ]);
+      const [
+        plantData,
+        timelineData,
+        graftData,
+        varietyData,
+        plantListData,
+        purchaseItemData,
+      ] = await Promise.all([
+        api(`/plants/${id}`),
+        api(`/plant-timelines/${id}/timeline`),
+        api(`/plants/${id}/grafts`),
+        api("/plant-varieties"),
+        api("/plants?limit=500"),
+        api("/purchase-items"),
+      ]);
 
       setPlant(plantData.plant || null);
       setTimeline(
@@ -258,6 +270,8 @@ export default function PlantDetailPage() {
           grafted_at: graftForm.grafted_at || null,
           status: graftForm.status,
           note: graftForm.note || null,
+          image_url: graftForm.image_url || null,
+          image_public_id: graftForm.image_public_id || null,
         }),
       });
 
@@ -274,6 +288,8 @@ export default function PlantDetailPage() {
         grafted_at: "",
         status: "alive",
         note: "",
+        image_url: "",
+        image_public_id: "",
       });
 
       await loadData();
@@ -298,24 +314,22 @@ export default function PlantDetailPage() {
   };
 
   const handleEditGraft = (graft: PlantGraft) => {
-      setEditingGraftId(graft.id);
+    setEditingGraftId(graft.id);
 
-      setGraftForm({
-        graft_variety_id: String(graft.graft_variety_id || ""),
-        method: graft.method || "grafting",
-        source_type: graft.source_type || "unknown",
-        source_plant_id: String(graft.source_plant_id || ""),
-        purchase_item_id: String(graft.purchase_item_id || ""),
-        position_name: graft.position_name || "",
-        grafted_at: graft.grafted_at
-          ? String(graft.grafted_at).slice(0, 10)
-          : "",
-        status: graft.status || "alive",
-        note: graft.note || "",
-      });
+    setGraftForm({
+      graft_variety_id: String(graft.graft_variety_id || ""),
+      method: graft.method || "grafting",
+      source_type: graft.source_type || "unknown",
+      source_plant_id: String(graft.source_plant_id || ""),
+      purchase_item_id: String(graft.purchase_item_id || ""),
+      position_name: graft.position_name || "",
+      grafted_at: graft.grafted_at ? String(graft.grafted_at).slice(0, 10) : "",
+      status: graft.status || "alive",
+      note: graft.note || "",
+    });
 
-      setOpenGraftModal(true);
-    };
+    setOpenGraftModal(true);
+  };
 
   const openUploadWidget = () => {
     if (openingUpload || uploadingImage) return;
@@ -341,8 +355,16 @@ export default function PlantDetailPage() {
         sources: ["local", "camera"],
         multiple: false,
         maxFiles: 1,
-        maxFileSize: 3000000,
-        clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
+        maxFileSize: 20000000,
+        clientAllowedFormats: ["jpg", "jpeg", "png", "webp", "heic", "heif"],
+        transformation: [
+          {
+            width: 1600,
+            crop: "limit",
+            quality: "auto",
+            fetch_format: "auto",
+          },
+        ],
         resourceType: "image",
         folder: "plants/timeline",
       },
@@ -381,6 +403,72 @@ export default function PlantDetailPage() {
       alert("ไม่สามารถเปิดหน้าต่างอัปโหลดได้");
       return;
     }
+
+    widget.open();
+  };
+
+  const openGraftUploadWidget = () => {
+    if (openingGraftUpload || uploadingGraftImage) return;
+
+    if (!(window as any).cloudinary) {
+      alert("Cloudinary not loaded");
+      return;
+    }
+
+    setOpeningGraftUpload(true);
+
+    const widget = (window as any).cloudinary.createUploadWidget(
+      {
+        cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dk7hhxcwn",
+        uploadPreset: "plants_grafts",
+        sources: ["local", "camera"],
+        multiple: false,
+        maxFiles: 1,
+        maxFileSize: 20000000,
+        clientAllowedFormats: ["jpg", "jpeg", "png", "webp", "heic", "heif"],
+        resourceType: "image",
+        folder: "plants/grafts",
+        transformation: [
+          {
+            width: 1600,
+            crop: "limit",
+            quality: "auto",
+            fetch_format: "auto",
+          },
+        ],
+      },
+      (error: any, result: any) => {
+        if (result?.event === "display-changed") {
+          setOpeningGraftUpload(false);
+        }
+
+        if (result?.event === "upload-added") {
+          setUploadingGraftImage(true);
+        }
+
+        if (!error && result?.event === "success") {
+          setOpeningGraftUpload(false);
+          setUploadingGraftImage(false);
+
+          setGraftForm((prev) => ({
+            ...prev,
+            image_url: result.info.secure_url,
+            image_public_id: result.info.public_id,
+          }));
+        }
+
+        if (result?.event === "close") {
+          setOpeningGraftUpload(false);
+          setUploadingGraftImage(false);
+        }
+
+        if (error) {
+          console.error(error);
+          setOpeningGraftUpload(false);
+          setUploadingGraftImage(false);
+        }
+      },
+    );
 
     widget.open();
   };
@@ -665,27 +753,27 @@ export default function PlantDetailPage() {
           <h2 className="font-semibold">ยอด / สายพันธุ์บนต้นนี้</h2>
 
           {(isSuper || user?.permissions?.includes("plant.update")) && (
-  <button
-    onClick={() => {
-      setEditingGraftId(null);
-      setGraftForm({
-        graft_variety_id: "",
-        method: "grafting",
-        source_type: "unknown",
-        source_plant_id: "",
-        purchase_item_id: "",
-        position_name: "",
-        grafted_at: "",
-        status: "alive",
-        note: "",
-      });
-      setOpenGraftModal(true);
-    }}
-    className="px-3 py-2 rounded bg-green-700 hover:bg-green-800 text-white text-sm"
-  >
-    + เพิ่มยอด
-  </button>
-)}
+            <button
+              onClick={() => {
+                setEditingGraftId(null);
+                setGraftForm({
+                  graft_variety_id: "",
+                  method: "grafting",
+                  source_type: "unknown",
+                  source_plant_id: "",
+                  purchase_item_id: "",
+                  position_name: "",
+                  grafted_at: "",
+                  status: "alive",
+                  note: "",
+                });
+                setOpenGraftModal(true);
+              }}
+              className="px-3 py-2 rounded bg-green-700 hover:bg-green-800 text-white text-sm"
+            >
+              + เพิ่มยอด
+            </button>
+          )}
         </div>
 
         {grafts.length === 0 ? (
@@ -749,23 +837,34 @@ export default function PlantDetailPage() {
                   </div>
                 )}
 
-                {(isSuper || user?.permissions?.includes("plant.update")) && (
-  <div className="flex gap-2 pt-2">
-    <button
-      onClick={() => handleEditGraft(graft)}
-      className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white text-xs"
-    >
-      แก้ไข
-    </button>
+                {graft.image_url && (
+                  <img
+                    src={getImageSrc(graft.image_url)}
+                    onClick={() =>
+                      setPreviewImage(getImageSrc(graft.image_url))
+                    }
+                    className="mt-3 rounded-lg border max-h-48 object-cover cursor-pointer"
+                    alt={graft.graft_variety_name || "graft"}
+                  />
+                )}
 
-    <button
-      onClick={() => handleDeleteGraft(graft.id)}
-      className="px-3 py-1 rounded bg-red-600 hover:bg-red-700 text-white text-xs"
-    >
-      ลบ
-    </button>
-  </div>
-)}
+                {(isSuper || user?.permissions?.includes("plant.update")) && (
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      onClick={() => handleEditGraft(graft)}
+                      className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white text-xs"
+                    >
+                      แก้ไข
+                    </button>
+
+                    <button
+                      onClick={() => handleDeleteGraft(graft.id)}
+                      className="px-3 py-1 rounded bg-red-600 hover:bg-red-700 text-white text-xs"
+                    >
+                      ลบ
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -923,7 +1022,9 @@ export default function PlantDetailPage() {
 
               {graftForm.source_type === "own_garden" && (
                 <div>
-                  <label className="text-sm font-medium">ต้นแม่ / แหล่งยอดในสวน</label>
+                  <label className="text-sm font-medium">
+                    ต้นแม่ / แหล่งยอดในสวน
+                  </label>
                   <select
                     className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800"
                     value={graftForm.source_plant_id}
@@ -962,22 +1063,28 @@ export default function PlantDetailPage() {
                   >
                     <option value="">เลือกรายการซื้อ</option>
                     {purchaseItems.map((item) => {
-                        const dateText = item.received_date
-                          ? String(item.received_date).slice(0, 10)
-                          : item.purchase_date
-                            ? String(item.purchase_date).slice(0, 10)
-                            : "-";
+                      const dateText = item.received_date
+                        ? String(item.received_date).slice(0, 10)
+                        : item.purchase_date
+                          ? String(item.purchase_date).slice(0, 10)
+                          : "-";
 
-                        const price = item.display_price || item.cost_per_unit || item.unit_price || 0;
+                      const price =
+                        item.display_price ||
+                        item.cost_per_unit ||
+                        item.unit_price ||
+                        0;
 
-                        return (
-                          <option key={item.id} value={item.id}>
-                            #{item.purchase_id || item.id} | {dateText} |{" "}
-                            {item.supplier_name || "-"} | {item.species_name || "-"} /{" "}
-                            {item.variety_name || "-"} | {item.item_type || "-"} | ฿{price}
-                          </option>
-                        );
-                      })}
+                      return (
+                        <option key={item.id} value={item.id}>
+                          #{item.purchase_id || item.id} | {dateText} |{" "}
+                          {item.supplier_name || "-"} |{" "}
+                          {item.species_name || "-"} /{" "}
+                          {item.variety_name || "-"} | {item.item_type || "-"} |
+                          ฿{price}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
               )}
@@ -1007,6 +1114,37 @@ export default function PlantDetailPage() {
                     setGraftForm({ ...graftForm, grafted_at: e.target.value })
                   }
                 />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">รูปยอด / จุดเสียบ</label>
+
+                {graftForm.image_url && (
+                  <img
+                    src={graftForm.image_url}
+                    alt="graft preview"
+                    className="mt-2 mb-3 rounded-lg border max-h-48 object-cover"
+                  />
+                )}
+
+                <button
+                  type="button"
+                  onClick={openGraftUploadWidget}
+                  disabled={openingGraftUpload || uploadingGraftImage}
+                  className="w-full rounded-lg bg-blue-600 px-4 py-3 text-white disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {(openingGraftUpload || uploadingGraftImage) && (
+                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  )}
+
+                  <span>
+                    {openingGraftUpload
+                      ? "กำลังเปิดหน้าต่างอัปโหลด..."
+                      : uploadingGraftImage
+                        ? "กำลังอัปโหลดรูป..."
+                        : "📷 อัปโหลดรูปยอด / จุดเสียบ"}
+                  </span>
+                </button>
               </div>
 
               <div>

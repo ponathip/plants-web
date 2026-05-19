@@ -63,3 +63,21 @@ body {
     width: 100%;
   }
 }
+
+.desktop-table {
+  display: none;
+}
+
+.mobile-cards {
+  display: block;
+}
+
+@media (min-width: 1024px) {
+  .desktop-table {
+    display: block;
+  }
+
+  .mobile-cards {
+    display: none;
+  }
+}

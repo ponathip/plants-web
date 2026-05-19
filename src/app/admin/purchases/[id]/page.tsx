@@ -85,8 +85,16 @@ const openUploadWidget = (onSuccess: (img: UploadedImage) => void) => {
       sources: ["local", "camera"],
       multiple: false,
       maxFiles: 1,
-      maxFileSize: 5000000,
-      clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
+      maxFileSize: 20000000,
+        clientAllowedFormats: ["jpg", "jpeg", "png", "webp", "heic", "heif"],
+        transformation: [
+          {
+            width: 1600,
+            crop: "limit",
+            quality: "auto",
+            fetch_format: "auto",
+          },
+        ],
       resourceType: "image",
       folder: "plant/purchases",
     },
