@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useProtect } from "@/components/Protected";
-import PermissionGate from "@/components/PermissionGate";
 import { api } from "@/lib/api";
 import { toastSuccess, toastError } from "@/lib/toast";
 import Link from "next/link";
@@ -226,6 +224,9 @@ export default function PlantsAdminPage() {
           ? purchaseItemData
           : purchaseItemData.data || [],
       );
+
+      console.log("supplier selected:", form.supplier_id);
+      console.log("purchaseItems:", purchaseItemData);
     } catch (err: any) {
       toastError(err.message || "โหลดข้อมูลตัวเลือกไม่สำเร็จ");
     }
@@ -257,23 +258,31 @@ export default function PlantsAdminPage() {
     setParentPlantOptions(plants || []);
   }, [plants]);
 
-  const filteredPurchaseItems = useMemo(() => {
-    return purchaseItems.filter((item) => {
-      if (
-        form.species_id &&
-        String(item.plant_species_id) !== String(form.species_id)
-      ) {
-        return false;
-      }
-      if (
-        form.plant_variety_id &&
-        String(item.plant_variety_id) !== String(form.plant_variety_id)
-      ) {
-        return false;
-      }
-      return true;
-    });
-  }, [purchaseItems, form.species_id, form.plant_variety_id]);
+  const selectedSupplier = suppliers.find(
+  (s) => String(s.id) === String(form.supplier_id),
+);
+
+const filteredPurchaseItems = useMemo(() => {
+  return purchaseItems.filter((item) => {
+    if (!form.supplier_id) return true;
+
+    const itemSupplierId =
+      item.supplier_id ??
+      item.supplierId ??
+      item.purchase_supplier_id;
+
+    if (itemSupplierId) {
+      return String(itemSupplierId) === String(form.supplier_id);
+    }
+
+    // fallback กรณี backend ส่งมาแค่ supplier_name
+    if (selectedSupplier?.name && item.supplier_name) {
+      return String(item.supplier_name).trim() === String(selectedSupplier.name).trim();
+    }
+
+    return false;
+  });
+}, [purchaseItems, form.supplier_id, selectedSupplier]);
 
   const filteredVarieties = useMemo(() => {
     if (!form.species_id) return varieties;
@@ -983,6 +992,8 @@ export default function PlantsAdminPage() {
                               setForm({
                                 ...form,
                                 supplier_id: e.target.value,
+                                // reset รายการซื้อเก่า
+                                purchase_item_id: "",
                               })
                             }
                           >
@@ -1010,12 +1021,24 @@ export default function PlantsAdminPage() {
                             }
                           >
                             <option value="">เลือกรายการซื้อ</option>
-                            {filteredPurchaseItems.map((item) => (
-                              <option key={item.id} value={item.id}>
-                                #{item.purchase_id} - {item.item_type} -{" "}
-                                {item.unit_price}
-                              </option>
-                            ))}
+                            {filteredPurchaseItems.map((item) => {
+                              const dateText = item.received_date
+                                ? String(item.received_date).slice(0, 10)
+                                : item.purchase_date
+                                  ? String(item.purchase_date).slice(0, 10)
+                                  : "-";
+
+                              const price =
+                                item.display_price || item.cost_per_unit || item.unit_price || 0;
+
+                              return (
+                                <option key={item.id} value={item.id}>
+                                  #{item.purchase_id || item.id} | {dateText} |{" "}
+                                  {item.supplier_name || "-"} | {item.species_name || "-"} /{" "}
+                                  {item.variety_name || "-"} | {item.item_type || "-"} | ฿{price}
+                                </option>
+                              );
+                            })}
                           </select>
                         </div>
                       </>

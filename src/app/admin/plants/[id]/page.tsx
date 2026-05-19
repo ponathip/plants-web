@@ -74,6 +74,22 @@ type PurchaseItemImage = {
   note?: string | null;
 };
 
+type PlantGraft = {
+  id: number;
+  plant_id: number;
+  graft_variety_id: number;
+  graft_variety_name?: string;
+  method: "grafting" | "budding" | "other";
+  source_type: "purchase" | "own_garden" | "unknown";
+  source_plant_id?: number | null;
+  source_plant_name?: string | null;
+  purchase_item_id?: number | null;
+  position_name?: string | null;
+  grafted_at?: string | null;
+  status: "alive" | "failed" | "removed";
+  note?: string | null;
+};
+
 function formatDateTime(value?: string) {
   if (!value) return "-";
   const d = new Date(value);
@@ -110,10 +126,30 @@ export default function PlantDetailPage() {
   const [purchaseItemImages, setPurchaseItemImages] = useState<
     PurchaseItemImage[]
   >([]);
+  const [grafts, setGrafts] = useState<PlantGraft[]>([]);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const [openingUpload, setOpeningUpload] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  const [openGraftModal, setOpenGraftModal] = useState(false);
+  const [editingGraftId, setEditingGraftId] = useState<number | null>(null);
+  const [graftForm, setGraftForm] = useState({
+    graft_variety_id: "",
+    method: "grafting",
+    source_type: "unknown",
+    source_plant_id: "",
+    purchase_item_id: "",
+    position_name: "",
+    grafted_at: "",
+    status: "alive",
+    note: "",
+  });
+
+  const [sourcePlantOptions, setSourcePlantOptions] = useState<any[]>([]);
+  const [purchaseItems, setPurchaseItems] = useState<any[]>([]);
+
+  const [varieties, setVarieties] = useState<any[]>([]);
 
   const loadData = async () => {
     if (!id) return;
@@ -122,14 +158,32 @@ export default function PlantDetailPage() {
       setLoading(true);
       setError("");
 
-      const [plantData, timelineData] = await Promise.all([
-        api(`/plants/${id}`),
-        api(`/plant-timelines/${id}/timeline`),
-      ]);
+      const [plantData, timelineData, graftData, varietyData, plantListData, purchaseItemData,] =
+        await Promise.all([
+          api(`/plants/${id}`),
+          api(`/plant-timelines/${id}/timeline`),
+          api(`/plants/${id}/grafts`),
+          api("/plant-varieties"),
+          api("/plants?limit=500"),
+          api("/purchase-items"),
+        ]);
 
       setPlant(plantData.plant || null);
       setTimeline(
         Array.isArray(timelineData) ? timelineData : timelineData.data || [],
+      );
+      setGrafts(Array.isArray(graftData) ? graftData : graftData.data || []);
+      setVarieties(
+        Array.isArray(varietyData) ? varietyData : varietyData.data || [],
+      );
+      setSourcePlantOptions(
+        Array.isArray(plantListData) ? plantListData : plantListData.data || [],
+      );
+
+      setPurchaseItems(
+        Array.isArray(purchaseItemData)
+          ? purchaseItemData
+          : purchaseItemData.data || [],
       );
       setPurchaseItem(plantData.purchase_item || null);
       setPurchaseItemImages(
@@ -179,6 +233,89 @@ export default function PlantDetailPage() {
       setSavingNote(false);
     }
   };
+
+  const handleSaveGraft = async () => {
+    if (!graftForm.graft_variety_id) {
+      return toastError("กรุณาเลือกสายพันธุ์ยอด");
+    }
+
+    try {
+      const url = editingGraftId
+        ? `/plant-grafts/${editingGraftId}`
+        : `/plants/${id}/grafts`;
+
+      const method = editingGraftId ? "PUT" : "POST";
+
+      await api(url, {
+        method,
+        body: JSON.stringify({
+          graft_variety_id: graftForm.graft_variety_id,
+          method: graftForm.method,
+          source_type: graftForm.source_type,
+          source_plant_id: graftForm.source_plant_id || null,
+          purchase_item_id: graftForm.purchase_item_id || null,
+          position_name: graftForm.position_name || null,
+          grafted_at: graftForm.grafted_at || null,
+          status: graftForm.status,
+          note: graftForm.note || null,
+        }),
+      });
+
+      toastSuccess("เพิ่มยอดสำเร็จ");
+      setOpenGraftModal(false);
+      setEditingGraftId(null);
+      setGraftForm({
+        graft_variety_id: "",
+        method: "grafting",
+        source_type: "unknown",
+        source_plant_id: "",
+        purchase_item_id: "",
+        position_name: "",
+        grafted_at: "",
+        status: "alive",
+        note: "",
+      });
+
+      await loadData();
+    } catch (err: any) {
+      toastError(err.message || "เพิ่มยอดไม่สำเร็จ");
+    }
+  };
+
+  const handleDeleteGraft = async (graftId: number) => {
+    if (!confirm("ลบยอดนี้?")) return;
+
+    try {
+      await api(`/plant-grafts/${graftId}`, {
+        method: "DELETE",
+      });
+
+      toastSuccess("ลบยอดสำเร็จ");
+      await loadData();
+    } catch (err: any) {
+      toastError(err.message || "ลบยอดไม่สำเร็จ");
+    }
+  };
+
+  const handleEditGraft = (graft: PlantGraft) => {
+      setEditingGraftId(graft.id);
+
+      setGraftForm({
+        graft_variety_id: String(graft.graft_variety_id || ""),
+        method: graft.method || "grafting",
+        source_type: graft.source_type || "unknown",
+        source_plant_id: String(graft.source_plant_id || ""),
+        purchase_item_id: String(graft.purchase_item_id || ""),
+        position_name: graft.position_name || "",
+        grafted_at: graft.grafted_at
+          ? String(graft.grafted_at).slice(0, 10)
+          : "",
+        status: graft.status || "alive",
+        note: graft.note || "",
+      });
+
+      setOpenGraftModal(true);
+    };
 
   const openUploadWidget = () => {
     if (openingUpload || uploadingImage) return;
@@ -294,6 +431,24 @@ export default function PlantDetailPage() {
     }),
     [],
   );
+
+  const graftMethodLabel: Record<string, string> = {
+    grafting: "เสียบยอด",
+    budding: "ติดตา",
+    other: "อื่นๆ",
+  };
+
+  const graftSourceLabel: Record<string, string> = {
+    purchase: "ซื้อมา",
+    own_garden: "จากต้นในสวน",
+    unknown: "ไม่ระบุ",
+  };
+
+  const graftStatusLabel: Record<string, string> = {
+    alive: "ติดแล้ว / ยังอยู่",
+    failed: "ไม่ติด",
+    removed: "ตัดออกแล้ว",
+  };
 
   if (loadingUser) {
     return <div className="p-6">กำลังโหลดข้อมูลผู้ใช้...</div>;
@@ -506,6 +661,118 @@ export default function PlantDetailPage() {
       </PermissionGate>
 
       <section className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold">ยอด / สายพันธุ์บนต้นนี้</h2>
+
+          {(isSuper || user?.permissions?.includes("plant.update")) && (
+  <button
+    onClick={() => {
+      setEditingGraftId(null);
+      setGraftForm({
+        graft_variety_id: "",
+        method: "grafting",
+        source_type: "unknown",
+        source_plant_id: "",
+        purchase_item_id: "",
+        position_name: "",
+        grafted_at: "",
+        status: "alive",
+        note: "",
+      });
+      setOpenGraftModal(true);
+    }}
+    className="px-3 py-2 rounded bg-green-700 hover:bg-green-800 text-white text-sm"
+  >
+    + เพิ่มยอด
+  </button>
+)}
+        </div>
+
+        {grafts.length === 0 ? (
+          <div className="text-gray-500 text-sm">
+            ยังไม่มีข้อมูลยอดหรือสายพันธุ์ที่เสียบบนต้นนี้
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {grafts.map((graft) => (
+              <div
+                key={graft.id}
+                className="rounded-xl border border-gray-200 dark:border-gray-800 p-4 space-y-2"
+              >
+                <div className="font-semibold text-green-700 dark:text-green-400">
+                  {graft.graft_variety_name ||
+                    `สายพันธุ์ #${graft.graft_variety_id}`}
+                </div>
+
+                <div className="text-sm text-gray-600 dark:text-gray-300">
+                  วิธี: {graftMethodLabel[graft.method] || graft.method}
+                </div>
+
+                <div className="text-sm text-gray-600 dark:text-gray-300">
+                  ที่มา:{" "}
+                  {graftSourceLabel[graft.source_type] || graft.source_type}
+                </div>
+
+                {graft.purchase_item_id && (
+                  <div className="text-sm text-gray-600 dark:text-gray-300">
+                    รายการซื้อ: #{graft.purchase_item_id}
+                  </div>
+                )}
+
+                {graft.source_plant_name && (
+                  <div className="text-sm text-gray-600 dark:text-gray-300">
+                    ต้นแม่/แหล่งยอด: {graft.source_plant_name}
+                  </div>
+                )}
+
+                {graft.position_name && (
+                  <div className="text-sm text-gray-600 dark:text-gray-300">
+                    ตำแหน่ง: {graft.position_name}
+                  </div>
+                )}
+
+                <div className="text-sm text-gray-600 dark:text-gray-300">
+                  วันที่ทำ:{" "}
+                  {graft.grafted_at ? formatDateTime(graft.grafted_at) : "-"}
+                </div>
+
+                <div className="text-sm">
+                  สถานะ:{" "}
+                  <span className="px-2 py-1 rounded bg-green-100 text-green-800 text-xs">
+                    {graftStatusLabel[graft.status] || graft.status}
+                  </span>
+                </div>
+
+                {graft.note && (
+                  <div className="text-sm text-gray-500 border-t pt-2 mt-2">
+                    {graft.note}
+                  </div>
+                )}
+
+                {(isSuper || user?.permissions?.includes("plant.update")) && (
+  <div className="flex gap-2 pt-2">
+    <button
+      onClick={() => handleEditGraft(graft)}
+      className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white text-xs"
+    >
+      แก้ไข
+    </button>
+
+    <button
+      onClick={() => handleDeleteGraft(graft.id)}
+      className="px-3 py-1 rounded bg-red-600 hover:bg-red-700 text-white text-xs"
+    >
+      ลบ
+    </button>
+  </div>
+)}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5">
         <h2 className="font-semibold mb-4">Timeline การเติบโต</h2>
 
         <div className="space-y-4">
@@ -568,6 +835,211 @@ export default function PlantDetailPage() {
           ))}
         </div>
       </section>
+
+      {openGraftModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-200 dark:border-gray-800">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+              <h2 className="text-lg font-semibold">
+                {editingGraftId
+                  ? "แก้ไขยอด / สายพันธุ์"
+                  : "เพิ่มยอด / สายพันธุ์บนต้นนี้"}
+              </h2>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="text-sm font-medium">สายพันธุ์ยอด *</label>
+                <select
+                  className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800"
+                  value={graftForm.graft_variety_id}
+                  onChange={(e) =>
+                    setGraftForm({
+                      ...graftForm,
+                      graft_variety_id: e.target.value,
+                    })
+                  }
+                >
+                  <option value="">เลือกสายพันธุ์</option>
+                  {varieties.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">วิธี</label>
+                  <select
+                    className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800"
+                    value={graftForm.method}
+                    onChange={(e) =>
+                      setGraftForm({ ...graftForm, method: e.target.value })
+                    }
+                  >
+                    <option value="grafting">เสียบยอด</option>
+                    <option value="budding">ติดตา</option>
+                    <option value="other">อื่นๆ</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">สถานะ</label>
+                  <select
+                    className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800"
+                    value={graftForm.status}
+                    onChange={(e) =>
+                      setGraftForm({ ...graftForm, status: e.target.value })
+                    }
+                  >
+                    <option value="alive">ติดแล้ว / ยังอยู่</option>
+                    <option value="failed">ไม่ติด</option>
+                    <option value="removed">ตัดออกแล้ว</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">ที่มา</label>
+                <select
+                  className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800"
+                  value={graftForm.source_type}
+                  onChange={(e) =>
+                    setGraftForm({
+                      ...graftForm,
+                      source_type: e.target.value,
+                      source_plant_id: "",
+                      purchase_item_id: "",
+                    })
+                  }
+                >
+                  <option value="unknown">ไม่ระบุ</option>
+                  <option value="purchase">ซื้อมา</option>
+                  <option value="own_garden">จากต้นในสวน</option>
+                </select>
+              </div>
+
+              {graftForm.source_type === "own_garden" && (
+                <div>
+                  <label className="text-sm font-medium">ต้นแม่ / แหล่งยอดในสวน</label>
+                  <select
+                    className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800"
+                    value={graftForm.source_plant_id}
+                    onChange={(e) =>
+                      setGraftForm({
+                        ...graftForm,
+                        source_plant_id: e.target.value,
+                      })
+                    }
+                  >
+                    <option value="">เลือกต้นแม่ / แหล่งยอด</option>
+                    {sourcePlantOptions
+                      .filter((p) => String(p.id) !== String(id))
+                      .map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.plant_code ? `${p.plant_code} - ` : ""}
+                          {p.display_name || p.name || `Plant #${p.id}`}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              )}
+
+              {graftForm.source_type === "purchase" && (
+                <div>
+                  <label className="text-sm font-medium">รายการซื้อ</label>
+                  <select
+                    className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800"
+                    value={graftForm.purchase_item_id}
+                    onChange={(e) =>
+                      setGraftForm({
+                        ...graftForm,
+                        purchase_item_id: e.target.value,
+                      })
+                    }
+                  >
+                    <option value="">เลือกรายการซื้อ</option>
+                    {purchaseItems.map((item) => {
+                        const dateText = item.received_date
+                          ? String(item.received_date).slice(0, 10)
+                          : item.purchase_date
+                            ? String(item.purchase_date).slice(0, 10)
+                            : "-";
+
+                        const price = item.display_price || item.cost_per_unit || item.unit_price || 0;
+
+                        return (
+                          <option key={item.id} value={item.id}>
+                            #{item.purchase_id || item.id} | {dateText} |{" "}
+                            {item.supplier_name || "-"} | {item.species_name || "-"} /{" "}
+                            {item.variety_name || "-"} | {item.item_type || "-"} | ฿{price}
+                          </option>
+                        );
+                      })}
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label className="text-sm font-medium">ตำแหน่งบนต้น</label>
+                <input
+                  className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800"
+                  placeholder="เช่น กิ่งซ้าย, กิ่งบน, ด้านหน้า"
+                  value={graftForm.position_name}
+                  onChange={(e) =>
+                    setGraftForm({
+                      ...graftForm,
+                      position_name: e.target.value,
+                    })
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">วันที่ทำ</label>
+                <input
+                  type="date"
+                  className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800"
+                  value={graftForm.grafted_at}
+                  onChange={(e) =>
+                    setGraftForm({ ...graftForm, grafted_at: e.target.value })
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">หมายเหตุ</label>
+                <textarea
+                  rows={3}
+                  className="w-full border px-3 py-2 rounded bg-white dark:bg-gray-800"
+                  value={graftForm.note}
+                  onChange={(e) =>
+                    setGraftForm({ ...graftForm, note: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex justify-end gap-2">
+              <button
+                onClick={() => setOpenGraftModal(false)}
+                className="px-4 py-2 border rounded"
+              >
+                ยกเลิก
+              </button>
+
+              <button
+                onClick={handleSaveGraft}
+                className="px-4 py-2 rounded bg-green-700 hover:bg-green-800 text-white"
+              >
+                บันทึก
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
