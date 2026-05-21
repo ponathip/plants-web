@@ -326,6 +326,8 @@ export default function PlantDetailPage() {
       grafted_at: graft.grafted_at ? String(graft.grafted_at).slice(0, 10) : "",
       status: graft.status || "alive",
       note: graft.note || "",
+      image_url: graft.image_url || "",
+      image_public_id: graft.image_public_id || "",
     });
 
     setOpenGraftModal(true);
