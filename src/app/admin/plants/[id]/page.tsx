@@ -940,8 +940,9 @@ export default function PlantDetailPage() {
       </section>
 
       {openGraftModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-200 dark:border-gray-800">
+        <div className="fixed inset-0 z-50 bg-black/50 overflow-y-auto p-4">
+          <div className="min-h-full flex items-start justify-center py-6">
+          <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-200 dark:border-gray-800 max-h-[calc(100vh-3rem)] overflow-hidden flex flex-col">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
               <h2 className="text-lg font-semibold">
                 {editingGraftId
@@ -950,7 +951,7 @@ export default function PlantDetailPage() {
               </h2>
             </div>
 
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-4 overflow-y-auto">
               <div>
                 <label className="text-sm font-medium">สายพันธุ์ยอด *</label>
                 <select
@@ -1164,7 +1165,7 @@ export default function PlantDetailPage() {
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex justify-end gap-2">
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex justify-end gap-2 shrink-0">
               <button
                 onClick={() => setOpenGraftModal(false)}
                 className="px-4 py-2 border rounded"
@@ -1179,6 +1180,7 @@ export default function PlantDetailPage() {
                 บันทึก
               </button>
             </div>
+          </div>
           </div>
         </div>
       )}

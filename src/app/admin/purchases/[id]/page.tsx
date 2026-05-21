@@ -85,7 +85,7 @@ const openUploadWidget = (onSuccess: (img: UploadedImage) => void) => {
       sources: ["local", "camera"],
       multiple: false,
       maxFiles: 1,
-      maxFileSize: 20000000,
+      // maxFileSize: 20000000,
         clientAllowedFormats: ["jpg", "jpeg", "png", "webp", "heic", "heif"],
         transformation: [
           {
