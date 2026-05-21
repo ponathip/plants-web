@@ -515,43 +515,37 @@ export default function PlantQrPage() {
         )}
 
         {grafts.length > 0 && (
-        <section className="rounded-3xl border border-emerald-100 bg-white/90 p-5 shadow-sm">
-          <h2 className="text-lg font-bold text-emerald-900 mb-3">
-            ยอด / สายพันธุ์บนต้นนี้
-          </h2>
+          <section className="rounded-2xl border border-gray-800 bg-gray-900 p-5">
+            <h2 className="text-lg font-bold text-white mb-3">
+              ยอด / สายพันธุ์บนต้นนี้
+            </h2>
 
-          <div className="space-y-3">
-            {grafts.map((graft) => (
-              <div
-                key={graft.id}
-                className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4"
-              >
-                <div className="font-bold text-emerald-900">
-                  {graft.graft_variety_name || "ไม่ระบุสายพันธุ์"}
-                </div>
-
-                <div className="mt-1 text-sm text-emerald-800">
-                  วิธี: {graftMethodLabel[graft.method] || graft.method}
-                </div>
-
-                {graft.position_name && (
-                  <div className="text-sm text-emerald-800">
-                    ตำแหน่ง: {graft.position_name}
+            <div className="space-y-3">
+              {grafts.map((graft) => (
+                <div
+                  key={graft.id}
+                  className="rounded-xl border border-green-800/50 bg-green-950/20 p-4"
+                >
+                  <div className="font-bold text-green-300">
+                    {graft.graft_variety_name}
                   </div>
-                )}
 
-                <div className="text-sm text-emerald-800">
-                  สถานะ: {graftStatusLabel[graft.status] || graft.status}
+                  <div className="text-sm text-gray-300">
+                    วิธี: {graftMethodLabel[graft.method]}
+                  </div>
+
+                  <div className="text-sm text-gray-300">
+                    ตำแหน่ง: {graft.position_name || "-"}
+                  </div>
+
+                  <div className="text-sm text-gray-300">
+                    สถานะ: {graftStatusLabel[graft.status]}
+                  </div>
                 </div>
-
-                {graft.note && (
-                  <div className="mt-2 text-sm text-gray-600">{graft.note}</div>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+              ))}
+            </div>
+          </section>
+        )}
 
         <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5">
           <h2 className="font-semibold text-lg">📈 การเติบโต</h2>

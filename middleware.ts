@@ -22,9 +22,13 @@ const token =
     return NextResponse.redirect(dashboardUrl)
   }
 
+  if (pathname.startsWith("/qr/plant")) {
+    return NextResponse.next();
+  }
+
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/login'],
-}
+  matcher: ["/admin/:path*", "/dashboard/:path*"],
+};
