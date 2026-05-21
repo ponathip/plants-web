@@ -768,6 +768,8 @@ export default function PlantDetailPage() {
                   grafted_at: "",
                   status: "alive",
                   note: "",
+                  image_url: "",
+                  image_public_id: "",
                 });
                 setOpenGraftModal(true);
               }}
