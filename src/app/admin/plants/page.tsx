@@ -59,6 +59,7 @@ type Plant = {
   plant_variety_name?: string;
   cover_image_url?: string;
   image_public_id?: string;
+  graft_names?: string;
 };
 
 const initialForm: Plant = {
@@ -712,8 +713,16 @@ export default function PlantsAdminPage() {
                     <td className="p-3">{p.id}</td>
                     {isSuper && <td className="p-3">{p.garden_name || "-"}</td>}
                     <td className="p-3">{p.plant_code || "-"}</td>
-                    <td className="max-w-[140px] whitespace-normal break-words">
-                      {p.display_name || p.name || "-"}
+                    <td className="p-3">
+                      <div className="font-medium">
+                        {p.display_name || p.name || "-"}
+                      </div>
+
+                      {p.graft_names && (
+                        <div className="text-xs text-green-400 mt-1">
+                          ยอด: {p.graft_names}
+                        </div>
+                      )}
                     </td>
                     <td className="p-3">
                       <span className="px-2 py-1 text-xs rounded bg-green-100 text-green-800">
