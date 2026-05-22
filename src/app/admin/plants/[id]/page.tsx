@@ -409,6 +409,25 @@ export default function PlantDetailPage() {
     widget.open();
   };
 
+  const filteredGraftPurchaseItems = useMemo(() => {
+    return purchaseItems.filter((item) => {
+      if (graftForm.source_type !== "purchase") return false;
+
+      if (
+        graftForm.graft_variety_id &&
+        String(item.plant_variety_id) !== String(graftForm.graft_variety_id)
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [
+    purchaseItems,
+    graftForm.source_type,
+    graftForm.graft_variety_id,
+  ]);
+
   const openGraftUploadWidget = () => {
     if (openingGraftUpload || uploadingGraftImage) return;
 
@@ -961,6 +980,7 @@ export default function PlantDetailPage() {
                     setGraftForm({
                       ...graftForm,
                       graft_variety_id: e.target.value,
+                      purchase_item_id: "",
                     })
                   }
                 >
@@ -1067,7 +1087,7 @@ export default function PlantDetailPage() {
                     }
                   >
                     <option value="">เลือกรายการซื้อ</option>
-                    {purchaseItems.map((item) => {
+                    {filteredGraftPurchaseItems.map((item) => {
                       const dateText = item.received_date
                         ? String(item.received_date).slice(0, 10)
                         : item.purchase_date
