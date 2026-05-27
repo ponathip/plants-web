@@ -147,10 +147,11 @@ export default function PlantsAdminPage() {
   const [openingUpload, setOpeningUpload] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [selectedPrintIds, setSelectedPrintIds] = useState<number[]>([]);
+  const [selectedPrintMap, setSelectedPrintMap] = useState<Record<number, Plant>>({});
   const [printLayout, setPrintLayout] = useState<"12" | "8">("12");
 
-  const selectedPlants = plants.filter((p) => selectedPrintIds.includes(p.id!));
+  const selectedPlants = Object.values(selectedPrintMap);
+  const selectedPrintIds = selectedPlants.map((p) => p.id!).filter(Boolean);
 
   const showPurchaseFields = form.source_type === "purchase";
   const showRootstockFields =
@@ -375,10 +376,38 @@ export default function PlantsAdminPage() {
     widget.open();
   };
 
-  const togglePrintPlant = (id: number) => {
-    setSelectedPrintIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
+  const togglePrintPlant = (plant: Plant) => {
+    if (!plant.id) return;
+
+    setSelectedPrintMap((prev) => {
+      const next = { ...prev };
+
+      if (next[plant.id!]) {
+        delete next[plant.id!];
+      } else {
+        next[plant.id!] = plant;
+      }
+
+      return next;
+    });
+  };
+
+  const toggleSelectCurrentPage = (checked: boolean) => {
+    setSelectedPrintMap((prev) => {
+      const next = { ...prev };
+
+      plants.forEach((plant) => {
+        if (!plant.id) return;
+
+        if (checked) {
+          next[plant.id] = plant;
+        } else {
+          delete next[plant.id];
+        }
+      });
+
+      return next;
+    });
   };
 
   const handlePrintQr = () => {
@@ -675,15 +704,9 @@ export default function PlantsAdminPage() {
                       type="checkbox"
                       checked={
                         plants.length > 0 &&
-                        selectedPrintIds.length === plants.length
+                        plants.every((plant) => !!selectedPrintMap[plant.id!])
                       }
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedPrintIds(plants.map((p) => p.id!));
-                        } else {
-                          setSelectedPrintIds([]);
-                        }
-                      }}
+                      onChange={(e) => toggleSelectCurrentPage(e.target.checked)}
                     />
                   </th>
 
@@ -705,8 +728,8 @@ export default function PlantsAdminPage() {
                     <td className="p-3">
                       <input
                         type="checkbox"
-                        checked={selectedPrintIds.includes(p.id!)}
-                        onChange={() => togglePrintPlant(p.id!)}
+                        checked={!!selectedPrintMap[p.id!]}
+                        onChange={() => togglePrintPlant(p)}
                       />
                     </td>
 
@@ -793,9 +816,17 @@ export default function PlantsAdminPage() {
                     </div>
                   </div>
 
-                  <span className="px-2 py-1 text-xs rounded bg-green-100 text-green-800 shrink-0">
-                    {statusLabel[p.status]}
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={!!selectedPrintMap[p.id!]}
+                      onChange={() => togglePrintPlant(p)}
+                      className="h-4 w-4"
+                    />
+                    <span className="px-2 py-1 text-xs rounded bg-green-100 text-green-800">
+                      {statusLabel[p.status]}
+                    </span>
+                  </div>
                 </div>
 
                 {isSuper && (
@@ -869,7 +900,7 @@ export default function PlantsAdminPage() {
             </div>
 
             <button
-              onClick={() => setSelectedPrintIds([])}
+              onClick={() => setSelectedPrintMap({})}
               className="text-sm text-red-400"
             >
               ยกเลิกการเลือก
