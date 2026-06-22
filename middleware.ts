@@ -12,6 +12,7 @@ export function middleware(req: NextRequest) {
   if (
     pathname === "/login" ||
     pathname.startsWith("/qr/plant") ||
+    pathname.startsWith("/qr/varieties") ||
     pathname.startsWith("/api")
   ) {
     return NextResponse.next()
