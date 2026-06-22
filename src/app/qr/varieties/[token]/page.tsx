@@ -204,7 +204,11 @@ export default function VarietyPublicPage() {
               src={data.cover_image_url}
               alt={displayTitle}
               className="h-[320px] w-full object-cover sm:h-[420px]"
-              onClick={() => setPreviewImage(data.cover_image_url)}
+              onClick={() => {
+                if (data.cover_image_url) {
+                  setPreviewImage(data.cover_image_url)
+                }
+              }}
             />
           ) : (
             <div className="h-[260px] w-full bg-gradient-to-br from-green-900 via-slate-900 to-slate-950" />
