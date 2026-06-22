@@ -784,9 +784,11 @@ export default function PlantVarietiesPage() {
                     <div className="qr-print-name">{item.name}</div>
                   )}
                   {showPrintCode && (
-                    <div className="qr-print-short">{item.short_name || item.name }</div>
+                    <div className="qr-print-short">{item.short_name || item.public_qr_token || `ID-${item.id}`}</div>
                   )}
-      
+                  {showPrintGarden && (
+                    <div className="qr-print-garden">สวนหลัก</div>
+                  )}
                   <div className="qr-print-leaf qr-print-leaf-left">❧</div>
                   <div className="qr-print-leaf qr-print-leaf-right">❧</div>
                 </div>
