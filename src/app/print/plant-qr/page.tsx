@@ -204,11 +204,7 @@ export default function PlantQRPrintPage() {
               <div className="plant-name">
                 {p.display_name || p.name || "-"}
               </div>
-
-              <div className="plant-code">{p.plant_code || "-"}</div>
-
-              <div className="garden-name">{p.garden_name || "สวนหลัก"}</div>
-
+              
               <div className="leaf left">🌿</div>
               <div className="leaf right">🌱</div>
             </div>
