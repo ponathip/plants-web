@@ -144,7 +144,13 @@ export default function VarietyPublicPage() {
         method: "GET",
         cache: "no-store",
       });
-      const normalized = normalizeVariety(res);
+
+      if (!res.ok) {
+        throw new Error("โหลดข้อมูลไม่สำเร็จ");
+      }
+
+      const json = await res.json();
+      const normalized = normalizeVariety(json);
 
       if (!normalized) {
         setData(null);
