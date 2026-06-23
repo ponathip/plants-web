@@ -470,7 +470,7 @@ export default function PlantVarietiesPage() {
         src="https://upload-widget.cloudinary.com/global/all.js"
         strategy="afterInteractive"
       />
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">🌿 สายพันธุ์พืช</h1>
           <p className="text-gray-500 dark:text-gray-400">
@@ -480,13 +480,17 @@ export default function PlantVarietiesPage() {
 
         <button
           onClick={openAdd}
-          className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700"
-        >
+          className="w-full
+            sm:w-auto
+            px-4 py-2
+            rounded
+            bg-green-600
+            text-white">
           ➕ เพิ่มพันธุ์พืช
         </button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <input
           value={search}
           onChange={(e) => {
@@ -503,7 +507,7 @@ export default function PlantVarietiesPage() {
             setSpeciesFilter(e.target.value);
             setPage(1);
           }}
-          className="px-3 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+          className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
         >
           <option value="">ทุกชนิดพืช</option>
           {speciesOptions.map((s) => (
@@ -552,7 +556,7 @@ export default function PlantVarietiesPage() {
       <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow dark:border-gray-700 dark:bg-gray-800">
         <h2 className="mb-4 text-lg font-semibold">พิมพ์ QR Code</h2>
 
-        <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
+        <div className="space-y-4 grid grid-cols-1 md:grid-cols-5 gap-3">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <label className="space-y-1 text-sm">
               <span className="text-gray-500 dark:text-gray-400">รูปกระดาษ</span>
@@ -576,43 +580,50 @@ export default function PlantVarietiesPage() {
                 <option value="8">8 ใบ / หน้า (2 x 4)</option>
               </select>
             </label>
+            <div className="space-y-2">
+              <label className="col-span-full gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={showPrintName}
+                  onChange={(e) => setShowPrintName(e.target.checked)}
+                  className="h-4 w-4 accent-green-500"
+                />
+                แสดงชื่อพันธุ์
+              </label>
 
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={showPrintName}
-                onChange={(e) => setShowPrintName(e.target.checked)}
-                className="h-4 w-4 accent-green-500"
-              />
-              แสดงชื่อพันธุ์
-            </label>
+              <label className="col-span-full gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={showPrintCode}
+                  onChange={(e) => setShowPrintCode(e.target.checked)}
+                  className="h-4 w-4 accent-green-500"
+                />
+                แสดงชื่อย่อ/โค้ด
+              </label>
 
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={showPrintCode}
-                onChange={(e) => setShowPrintCode(e.target.checked)}
-                className="h-4 w-4 accent-green-500"
-              />
-              แสดงชื่อย่อ/โค้ด
-            </label>
-
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={showPrintGarden}
-                onChange={(e) => setShowPrintGarden(e.target.checked)}
-                className="h-4 w-4 accent-green-500"
-              />
-              แสดงชื่อสวน
-            </label>
+              <label className="col-span-full gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={showPrintGarden}
+                  onChange={(e) => setShowPrintGarden(e.target.checked)}
+                  className="h-4 w-4 accent-green-500"
+                />
+                แสดงชื่อสวน
+              </label>
+            </div>
           </div>
 
           <button
             type="button"
             onClick={handlePrintA4}
             disabled={printableItems.length === 0}
-            className="rounded-lg bg-green-600 px-5 py-3 font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full
+              md:w-auto
+              rounded-lg
+              bg-green-600
+              px-5 py-3
+              font-semibold
+              text-white"
           >
             🖨 พิมพ์ / บันทึก PDF
           </button>
@@ -631,6 +642,7 @@ export default function PlantVarietiesPage() {
           </div>
         ) : (
           <>
+          <div className="hidden md:block">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 dark:bg-gray-700 text-left">
                 <tr>
@@ -720,6 +732,59 @@ export default function PlantVarietiesPage() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          <div className="md:hidden space-y-3">
+            {pagedData.map((v) => (
+              <div
+                key={v.id}
+                className="rounded-xl bg-gray-800 p-3 border border-gray-700"
+              >
+                <div className="flex gap-3">
+                  {v.image_url && (
+                    <img
+                      src={v.image_url}
+                      className="w-16 h-16 rounded object-cover"
+                    />
+                  )}
+
+                  <div className="flex-1">
+                    <div className="font-semibold">
+                      {v.name}
+                    </div>
+
+                    <div className="text-xs text-gray-400">
+                      {v.species_name}
+                    </div>
+
+                    <div className="text-xs text-green-400">
+                      {v.short_name}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 mt-3">
+                  <button
+                    className="flex-1 bg-blue-600 text-white rounded py-2"
+                  >
+                    แก้ไข
+                  </button>
+
+                  <button
+                    className="flex-1 bg-green-600 text-white rounded py-2"
+                  >
+                    QR
+                  </button>
+
+                  <button
+                    className="flex-1 bg-red-600 text-white rounded py-2"
+                  >
+                    ลบ
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
 
             {totalPages > 1 && (
               <div className="flex justify-end items-center gap-2 p-3 text-sm">
