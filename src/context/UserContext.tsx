@@ -1,66 +1,66 @@
-"use client"
+"use client";
 
-import { createContext, useContext, useEffect, useState } from "react"
-import { api } from "@/lib/api"
-import { usePathname } from "next/navigation"
+import { createContext, useContext, useEffect, useState } from "react";
+import { api } from "@/lib/api";
+import { usePathname } from "next/navigation";
 
 type User = {
-  userId: number
-  role: string
-  gardenId?: number | null
-  permissions?: string[]
-}
+  userId: number;
+  role: string;
+  gardenId?: number | null;
+  permissions?: string[];
+};
 
 type UserContextType = {
-  user: User | null
-  loadingUser: boolean
-}
+  user: User | null;
+  loadingUser: boolean;
+};
 
-const UserContext = createContext<UserContextType | null>(null)
+const UserContext = createContext<UserContextType | null>(null);
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [loadingUser, setLoadingUser] = useState(true)
-  const pathname = usePathname()
+  const [user, setUser] = useState<User | null>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
+  const pathname = usePathname();
 
   useEffect(() => {
-    if (pathname === "/login") {
-      setLoadingUser(false)
-      return
+    if (pathname === "/login" || pathname.startsWith("/qr")) {
+      setLoadingUser(false);
+      return;
     }
 
     const load = async () => {
       try {
-        // 🔥 endpoint ที่คุณต้องมี
-        const res = await api("/auth/me")
-        setUser(res)
+        const res = await api("/auth/me");
+        setUser(res);
       } catch (err) {
-        const message = err instanceof Error ? err.message : ""
+        const message = err instanceof Error ? err.message : "";
+
         if (message === "SESSION_EXPIRED") {
-          setUser(null)
-          return
+          setUser(null);
+          return;
         }
       } finally {
-        setLoadingUser(false)
+        setLoadingUser(false);
       }
-    }
+    };
 
-    load()
-  }, [])
+    load();
+  }, [pathname]);
 
   return (
     <UserContext.Provider value={{ user, loadingUser }}>
       {children}
     </UserContext.Provider>
-  )
+  );
 }
 
 export function useUser() {
-  const ctx = useContext(UserContext)
+  const ctx = useContext(UserContext);
 
   if (!ctx) {
-    throw new Error("useUser must be used inside UserProvider")
+    throw new Error("useUser must be used inside UserProvider");
   }
 
-  return ctx
+  return ctx;
 }
