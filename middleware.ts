@@ -2,44 +2,30 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
 export function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl
+
+  // ✅ QR public ผ่านตลอด
+  if (pathname.startsWith("/qr")) {
+    return NextResponse.next()
+  }
+
   const token =
     req.cookies.get("accessToken")?.value ||
     req.headers.get("cookie")?.includes("accessToken")
 
-  const { pathname } = req.nextUrl
-
-  // ✅ public routes ต้องอยู่บนสุด
-  if (
-    pathname === "/login" ||
-    pathname.startsWith("/qr") ||
-    pathname.startsWith("/api")
-  ) {
-    return NextResponse.next()
+  if (pathname === "/login" && token) {
+    return NextResponse.redirect(new URL("/dashboard", req.url))
   }
 
-  // ✅ protected routes
   if (pathname.startsWith("/admin") || pathname.startsWith("/dashboard")) {
     if (!token) {
-      const loginUrl = new URL("/login", req.url)
-      return NextResponse.redirect(loginUrl)
+      return NextResponse.redirect(new URL("/login", req.url))
     }
-  }
-
-  // ✅ login แล้วเข้า /login ให้ไป dashboard
-  if (pathname === "/login" && token) {
-    const dashboardUrl = new URL("/dashboard", req.url)
-    return NextResponse.redirect(dashboardUrl)
   }
 
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: [
-    "/admin/:path*",
-    "/dashboard/:path*",
-    "/login",
-    "/qr/plant/:path*",
-    "/qr/varieties/:path*",
-  ],
+  matcher: ["/admin/:path*", "/dashboard/:path*", "/login", "/qr/:path*"],
 }
