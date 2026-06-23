@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { api } from "@/lib/api";
+// import { api } from "@/lib/api";
 
 type VarietyApi = {
   name?: string;
@@ -133,12 +133,17 @@ export default function VarietyPublicPage() {
     return data?.public_title || data?.name || "-";
   }, [data]);
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+
   const loadVariety = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const res = await api(`/plant-varieties/qr/${token}`);
+      const res = await fetch(`${API_URL}/plant-varieties/qr/${token}`, {
+        method: "GET",
+        cache: "no-store",
+      });
       const normalized = normalizeVariety(res);
 
       if (!normalized) {
