@@ -11,8 +11,7 @@ export function middleware(req: NextRequest) {
   // ✅ public routes ต้องอยู่บนสุด
   if (
     pathname === "/login" ||
-    pathname.startsWith("/qr/plant") ||
-    pathname.startsWith("/qr/varieties") ||
+    pathname.startsWith("/qr") ||
     pathname.startsWith("/api")
   ) {
     return NextResponse.next()
@@ -36,5 +35,11 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/dashboard/:path*", "/login", "/qr/plant/:path*"],
+  matcher: [
+    "/admin/:path*",
+    "/dashboard/:path*",
+    "/login",
+    "/qr/plant/:path*",
+    "/qr/varieties/:path*",
+  ],
 }
