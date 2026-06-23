@@ -480,12 +480,7 @@ export default function PlantVarietiesPage() {
 
         <button
           onClick={openAdd}
-          className="w-full
-            sm:w-auto
-            px-4 py-2
-            rounded
-            bg-green-600
-            text-white">
+          className="w-full sm:w-auto px-4 py-2 rounded bg-green-600 text-white">
           ➕ เพิ่มพันธุ์พืช
         </button>
       </div>
@@ -617,14 +612,7 @@ export default function PlantVarietiesPage() {
             type="button"
             onClick={handlePrintA4}
             disabled={printableItems.length === 0}
-            className="w-full
-              md:w-auto
-              rounded-lg
-              bg-green-600
-              px-5 py-3
-              font-semibold
-              text-white"
-          >
+            className="w-full md:w-auto rounded-lg bg-green-600 px-5 py-3 font-semibold text-white">
             🖨 พิมพ์ / บันทึก PDF
           </button>
         </div>
