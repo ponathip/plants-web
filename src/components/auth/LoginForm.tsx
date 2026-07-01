@@ -36,13 +36,22 @@ export default function LoginForm() {
       localStorage.setItem("accessToken", data.accessToken)
       localStorage.setItem("refreshToken", data.refreshToken)
       if (res.ok) {
-        window.location.href = "/dashboard"
+        const params = new URLSearchParams(window.location.search)
+        const redirect = params.get("redirect")
+
+        router.replace(
+          redirect && redirect.startsWith("/") ? redirect : "/dashboard"
+        )
       }
-          } catch (err: any) {
-            setError(err.message)
-          } finally {
-            setLoading(false)
-          }
+          } catch (err: unknown) {
+        if (err instanceof Error) {
+          setError(err.message)
+        } else {
+          setError("เกิดข้อผิดพลาด")
+        }
+      } finally {
+        setLoading(false)
+      }
         }
 
   return (

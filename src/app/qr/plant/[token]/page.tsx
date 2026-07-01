@@ -241,8 +241,11 @@ export default function PlantQrPage() {
       setSaving(true);
       setError("");
 
-      await api("/plant-timelines", {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/plant-timelines/public`, {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           plant_id: plant.id,
           title: timelineForm.title,
@@ -267,6 +270,12 @@ export default function PlantQrPage() {
       setSaving(false);
     }
   };
+
+  const loginToEdit = () => {
+    window.location.href = `/login?redirect=${encodeURIComponent(
+      window.location.pathname
+    )}`
+  }
 
   const updateStatus = async (status: "alive" | "dead") => {
     try {
@@ -509,6 +518,13 @@ export default function PlantQrPage() {
           className="w-full bg-green-600 text-white p-3 rounded-2xl shadow hover:bg-green-700"
         >
           ➕ เพิ่มการอัปเดต
+        </button>
+
+        <button
+          onClick={loginToEdit}
+          className="w-full rounded-xl bg-orange-600 px-4 py-3 text-white"
+        >
+          🔐 Login to Edit
         </button>
 
         {error && (
