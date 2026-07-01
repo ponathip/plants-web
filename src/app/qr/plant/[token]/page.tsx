@@ -154,69 +154,71 @@ export default function PlantQrPage() {
   }, [token]);
 
   const openUploadWidget = () => {
-    if (openingUpload || uploadingImage) return;
+  if (openingUpload || uploadingImage) return;
 
-    if (!(window as any).cloudinary) {
-      alert("Cloudinary not loaded");
-      return;
+  const cloudinary = (window as any).cloudinary;
+
+  if (!cloudinary || typeof cloudinary.createUploadWidget !== "function") {
+    alert("Cloudinary ยังโหลดไม่เสร็จ กรุณารอสักครู่แล้วลองใหม่");
+    return;
+  }
+
+  setOpeningUpload(true);
+
+  const widget = cloudinary.createUploadWidget(
+    {
+      cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dk7hhxcwn",
+      uploadPreset: "plants_timeline",
+      sources: ["local", "camera"],
+      multiple: false,
+      maxFiles: 1,
+      maxFileSize: 2000000,
+      clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
+      resourceType: "image",
+      folder: "plants/timeline",
+    },
+    (error: any, result: any) => {
+      if (error) {
+        console.error("Cloudinary upload error:", error);
+        setOpeningUpload(false);
+        setUploadingImage(false);
+        alert("อัปโหลดรูปไม่สำเร็จ");
+        return;
+      }
+
+      if (result?.event === "display-changed") {
+        setOpeningUpload(false);
+      }
+
+      if (result?.event === "upload-added") {
+        setOpeningUpload(false);
+        setUploadingImage(true);
+      }
+
+      if (result?.event === "success") {
+        setOpeningUpload(false);
+        setUploadingImage(false);
+
+        setTimelineForm((prev) => ({
+          ...prev,
+          image_url: result.info.secure_url,
+        }));
+      }
+
+      if (result?.event === "close") {
+        setOpeningUpload(false);
+        setUploadingImage(false);
+      }
     }
+  );
 
-    setOpeningUpload(true);
+  if (!widget) {
+    setOpeningUpload(false);
+    alert("เปิด Cloudinary Widget ไม่สำเร็จ");
+    return;
+  }
 
-    const widget = (window as any).cloudinary.createUploadWidget(
-      {
-        cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-        uploadPreset: "plants_timeline",
-        sources: ["local", "camera"],
-        multiple: false,
-        maxFiles: 1,
-        // maxFileSize: 20000000,
-        clientAllowedFormats: ["jpg", "jpeg", "png", "webp", "heic", "heif"],
-        transformation: [
-          {
-            width: 1600,
-            crop: "limit",
-            quality: "auto",
-            fetch_format: "auto",
-          },
-        ],
-        resourceType: "image",
-        folder: "plants/timeline",
-      },
-      (error: any, result: any) => {
-        if (result?.event === "display-changed") {
-          setOpeningUpload(false);
-        }
-
-        if (result?.event === "upload-added") {
-          setUploadingImage(true);
-        }
-
-        if (!error && result?.event === "success") {
-          setOpeningUpload(false);
-          setUploadingImage(false);
-
-          const url = result.info.secure_url;
-          setTimelineForm((prev) => ({
-            ...prev,
-            image_url: url,
-          }));
-        }
-
-        if (result?.event === "close") {
-          setOpeningUpload(false);
-          setUploadingImage(false);
-        }
-
-        if (error) {
-          console.error(error);
-          setOpeningUpload(false);
-          setUploadingImage(false);
-        }
-      },
-    );
-
-    widget.open();
+  widget.open();
   };
 
   const createTimeline = async () => {
@@ -367,11 +369,6 @@ export default function PlantQrPage() {
   }
 
   return (
-    <>
-    <Script
-      src="https://upload-widget.cloudinary.com/global/all.js"
-      strategy="afterInteractive"
-    />
     <div className="min-h-screen bg-slate-950 p-4">
       <div className="max-w-xl mx-auto space-y-4">
         {(plantVarieties[0]?.image_url || plant.image_url) && (
@@ -688,6 +685,5 @@ export default function PlantQrPage() {
         </Dialog>
       </div>
     </div>
-    </>
   );
 }
