@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
+import Script from "next/script";
 
 type PlantData = {
   id: number;
@@ -366,6 +367,11 @@ export default function PlantQrPage() {
   }
 
   return (
+    <>
+    <Script
+      src="https://upload-widget.cloudinary.com/global/all.js"
+      strategy="afterInteractive"
+    />
     <div className="min-h-screen bg-slate-950 p-4">
       <div className="max-w-xl mx-auto space-y-4">
         {(plantVarieties[0]?.image_url || plant.image_url) && (
@@ -682,5 +688,6 @@ export default function PlantQrPage() {
         </Dialog>
       </div>
     </div>
+    </>
   );
 }

@@ -551,7 +551,7 @@ export default function PlantVarietiesPage() {
       <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow dark:border-gray-700 dark:bg-gray-800">
         <h2 className="mb-4 text-lg font-semibold">พิมพ์ QR Code</h2>
 
-        <div className="space-y-4 grid grid-cols-1 md:grid-cols-5 gap-3">
+        <div className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <label className="space-y-1 text-sm">
               <span className="text-gray-500 dark:text-gray-400">รูปกระดาษ</span>
