@@ -66,8 +66,19 @@ type PlantGraft = {
   source_plant_name?: string | null;
   position_name?: string | null;
   grafted_at?: string | null;
-  status: "alive" | "failed" | "removed";
+  status: "active" | "alive" | "failed" | "removed";
   note?: string | null;
+  removed_at?: string | null;
+  removed_reason?: string | null;
+  replaced_by_graft_id?: number | null;
+  replaced_from_graft_id?: number | null;
+};
+
+type QrUser = {
+  userId?: number;
+  id?: number;
+  role?: string;
+  permissions?: string[];
 };
 
 function formatMoney(value?: number | string | null) {
@@ -106,6 +117,7 @@ export default function PlantQrPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
 
   const [grafts, setGrafts] = useState<PlantGraft[]>([]);
+  const [qrUser, setQrUser] = useState<QrUser | null>(null);
 
   const [timelineForm, setTimelineForm] = useState({
     title: "",
@@ -113,6 +125,69 @@ export default function PlantQrPage() {
     event_date: new Date().toISOString().slice(0, 16),
     image_url: "",
   });
+
+  const checkQrUser = async () => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+        credentials: "include",
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        setQrUser(null);
+        return;
+      }
+
+      const json = await res.json();
+      setQrUser(json);
+    } catch {
+      setQrUser(null);
+    }
+  };
+
+  const [replaceModal, setReplaceModal] = useState<PlantGraft | null>(null)
+  const [replaceForm, setReplaceForm] = useState({
+    new_variety_id: "",
+    method: "grafting",
+    position_name: "",
+    grafted_at: new Date().toISOString().slice(0, 10),
+    reason: "",
+    note: "",
+  })
+
+  const [removeModal, setRemoveModal] = useState<PlantGraft | null>(null);
+
+  const [removeForm, setRemoveForm] = useState({
+    reason: "",
+    removed_at: new Date().toISOString().slice(0, 10),
+  });
+
+  const saveRemoveScion = async () => {
+    if (!removeModal) return;
+
+    try {
+      setSaving(true);
+
+      await api(`/grafts/${removeModal.id}/remove-scion`, {
+        method: "POST",
+        body: JSON.stringify({
+          reason: removeForm.reason || null,
+          removed_at: removeForm.removed_at || null,
+        }),
+      });
+
+      setRemoveModal(null);
+      setRemoveForm({
+        reason: "",
+        removed_at: new Date().toISOString().slice(0, 10),
+      });
+      await loadPlant();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Remove scion failed");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const loadPlant = async () => {
     try {
@@ -151,6 +226,7 @@ export default function PlantQrPage() {
 
   useEffect(() => {
     if (token) loadPlant();
+    checkQrUser();
   }, [token]);
 
   const openUploadWidget = () => {
@@ -274,8 +350,8 @@ export default function PlantQrPage() {
   const loginToEdit = () => {
     window.location.href = `/login?redirect=${encodeURIComponent(
       window.location.pathname
-    )}`
-  }
+    )}`;
+  };
 
   const updateStatus = async (status: "alive" | "dead") => {
     try {
@@ -294,6 +370,46 @@ export default function PlantQrPage() {
       setSaving(false);
     }
   };
+
+  const saveReplaceScion = async () => {
+    if (!replaceModal) return
+
+    if (!replaceForm.new_variety_id) {
+      setError("กรุณากรอกสายพันธุ์ใหม่");
+      return;
+    }
+
+    try {
+      setSaving(true)
+
+      await api(`/grafts/${replaceModal.id}/replace-scion`, {
+        method: "POST",
+        body: JSON.stringify({
+          new_variety_id: Number(replaceForm.new_variety_id),
+          method: replaceForm.method,
+          position_name: replaceForm.position_name || null,
+          grafted_at: replaceForm.grafted_at || null,
+          reason: replaceForm.reason || null,
+          note: replaceForm.note || null,
+        }),
+      })
+
+      setReplaceModal(null)
+      setReplaceForm({
+        new_variety_id: "",
+        method: "grafting",
+        position_name: "",
+        grafted_at: new Date().toISOString().slice(0, 10),
+        reason: "",
+        note: "",
+      })
+      await loadPlant()
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Replace scion failed")
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const getAgeText = (acquiredAt?: string | null) => {
     if (!acquiredAt) return "-";
@@ -348,6 +464,9 @@ export default function PlantQrPage() {
     failed: "ไม่ติด",
     removed: "ตัดออกแล้ว",
   };
+
+  const activeGrafts = grafts.filter((g) => g.status === "active" || g.status === "alive")
+  const historyGrafts = grafts.filter((g) => g.status === "removed" || g.status === "failed")
 
   const displayName =
     plant?.display_name || plant?.name || plant?.plant_variety_name || "-";
@@ -520,45 +639,85 @@ export default function PlantQrPage() {
           ➕ เพิ่มการอัปเดต
         </button>
 
-        <button
-          onClick={loginToEdit}
-          className="w-full rounded-xl bg-orange-600 px-4 py-3 text-white"
-        >
-          🔐 Login to Edit
-        </button>
-
         {error && (
           <div className="bg-white text-red-600 p-4 rounded-2xl shadow text-sm">
             {error}
           </div>
         )}
 
-        {grafts.length > 0 && (
-          <section className="rounded-2xl border border-gray-800 bg-gray-900 p-5">
+        {activeGrafts.length > 0 && (
+          <section className="rounded-2xl border border-green-800/50 bg-gray-900 p-5">
             <h2 className="text-lg font-bold text-white mb-3">
-              ยอด / สายพันธุ์บนต้นนี้
+              ✅ ยอดปัจจุบัน
             </h2>
 
             <div className="space-y-3">
-              {grafts.map((graft) => (
+              {activeGrafts.map((graft) => (
                 <div
                   key={graft.id}
-                  className="rounded-xl border border-green-800/50 bg-green-950/20 p-4"
+                  className="rounded-xl border border-green-700 bg-green-950/20 p-4"
                 >
                   <div className="font-bold text-green-300">
                     {graft.graft_variety_name}
                   </div>
 
                   <div className="text-sm text-gray-300">
-                    วิธี: {graftMethodLabel[graft.method]}
+                    Method: {graft.method}
                   </div>
 
                   <div className="text-sm text-gray-300">
-                    ตำแหน่ง: {graft.position_name || "-"}
+                    Position: {graft.position_name || "-"}
                   </div>
 
-                  <div className="text-sm text-gray-300">
-                    สถานะ: {graftStatusLabel[graft.status]}
+                  <div className="mt-4 space-y-2">
+                    {!qrUser ? (
+                      <button
+                        onClick={loginToEdit}
+                        className="w-full rounded-lg bg-orange-600 px-3 py-2 font-semibold text-white"
+                      >
+                        🔐 Login to Edit
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => setReplaceModal(graft)}
+                          className="w-full rounded-lg bg-orange-600 px-3 py-2 text-white"
+                        >
+                          🔄 Replace Scion
+                        </button>
+
+                        <button
+                          onClick={() => setRemoveModal(graft)}
+                          className="w-full rounded-lg bg-red-600 px-3 py-2 text-white"
+                        >
+                          ❌ Remove Scion
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {historyGrafts.length > 0 && (
+          <section className="rounded-2xl border border-slate-700 bg-gray-900 p-5">
+            <h2 className="text-lg font-bold text-white mb-3">
+              📜 ประวัติยอดเดิม
+            </h2>
+
+            <div className="space-y-3">
+              {historyGrafts.map((graft) => (
+                <div key={graft.id} className="rounded-xl bg-slate-800 p-4">
+                  <div className="font-bold text-slate-200">
+                    {graft.graft_variety_name}
+                  </div>
+                  <div className="text-sm text-gray-400">
+                    สถานะ: {graftStatusLabel[graft.status] || graft.status}
+                  </div>
+                  <div className="text-sm text-gray-400">
+                    เหตุผล: {graft.removed_reason || "-"}
                   </div>
                 </div>
               ))}
@@ -699,6 +858,174 @@ export default function PlantQrPage() {
             </div>
           </div>
         </Dialog>
+
+        {replaceModal && (
+          <Dialog
+            open={!!replaceModal}
+            onClose={() => setReplaceModal(null)}
+            className="relative z-50"
+          >
+            <div className="fixed inset-0 bg-black/50" />
+
+            <div className="fixed inset-0 flex items-center justify-center p-4">
+              <DialogPanel className="w-full max-w-md rounded-2xl bg-white p-5 text-gray-900 space-y-3">
+                <DialogTitle className="text-lg font-semibold">
+                  Replace Scion
+                </DialogTitle>
+
+                <div className="text-sm">
+                  Old scion: <b>{replaceModal.graft_variety_name}</b>
+                </div>
+
+                <input
+                  value={replaceForm.new_variety_id}
+                  onChange={(e) =>
+                    setReplaceForm({
+                      ...replaceForm,
+                      new_variety_id: e.target.value,
+                    })
+                  }
+                  placeholder="New variety id"
+                  className="w-full rounded border p-2"
+                />
+
+                <select
+                  value={replaceForm.method}
+                  onChange={(e) =>
+                    setReplaceForm({
+                      ...replaceForm,
+                      method: e.target.value,
+                    })
+                  }
+                  className="w-full rounded border p-2"
+                >
+                  <option value="grafting">เสียบยอด</option>
+                  <option value="budding">ติดตา</option>
+                  <option value="other">อื่นๆ</option>
+                </select>
+
+                <input
+                  value={replaceForm.position_name}
+                  onChange={(e) =>
+                    setReplaceForm({
+                      ...replaceForm,
+                      position_name: e.target.value,
+                    })
+                  }
+                  placeholder="Position เช่น Top / Left / Right"
+                  className="w-full rounded border p-2"
+                />
+
+                <input
+                  type="date"
+                  value={replaceForm.grafted_at}
+                  onChange={(e) =>
+                    setReplaceForm({
+                      ...replaceForm,
+                      grafted_at: e.target.value,
+                    })
+                  }
+                  className="w-full rounded border p-2"
+                />
+
+                <textarea
+                  value={replaceForm.reason}
+                  onChange={(e) =>
+                    setReplaceForm({
+                      ...replaceForm,
+                      reason: e.target.value,
+                    })
+                  }
+                  placeholder="Reason เช่น Scion damaged"
+                  className="w-full rounded border p-2"
+                  rows={3}
+                />
+
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => setReplaceModal(null)}
+                    className="rounded border px-4 py-2"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    onClick={saveReplaceScion}
+                    disabled={saving}
+                    className="rounded bg-orange-600 px-4 py-2 text-white disabled:opacity-50"
+                  >
+                    {saving ? "Saving..." : "Save"}
+                  </button>
+                </div>
+              </DialogPanel>
+            </div>
+          </Dialog>
+        )}
+
+
+        {removeModal && (
+          <Dialog
+            open={!!removeModal}
+            onClose={() => setRemoveModal(null)}
+            className="relative z-50"
+          >
+            <div className="fixed inset-0 bg-black/50" />
+
+            <div className="fixed inset-0 flex items-center justify-center p-4">
+              <DialogPanel className="w-full max-w-md rounded-2xl bg-white p-5 text-gray-900 space-y-3">
+                <DialogTitle className="text-lg font-semibold">
+                  Remove Scion
+                </DialogTitle>
+
+                <div className="text-sm">
+                  Scion: <b>{removeModal.graft_variety_name || "-"}</b>
+                </div>
+
+                <input
+                  type="date"
+                  value={removeForm.removed_at}
+                  onChange={(e) =>
+                    setRemoveForm({
+                      ...removeForm,
+                      removed_at: e.target.value,
+                    })
+                  }
+                  className="w-full rounded border p-2"
+                />
+
+                <textarea
+                  value={removeForm.reason}
+                  onChange={(e) =>
+                    setRemoveForm({
+                      ...removeForm,
+                      reason: e.target.value,
+                    })
+                  }
+                  placeholder="Reason เช่น Scion damaged"
+                  className="w-full rounded border p-2"
+                  rows={3}
+                />
+
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => setRemoveModal(null)}
+                    className="rounded border px-4 py-2"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    onClick={saveRemoveScion}
+                    disabled={saving}
+                    className="rounded bg-red-600 px-4 py-2 text-white disabled:opacity-50"
+                  >
+                    {saving ? "Saving..." : "Remove"}
+                  </button>
+                </div>
+              </DialogPanel>
+            </div>
+          </Dialog>
+        )}
       </div>
     </div>
   );
